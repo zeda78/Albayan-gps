@@ -1,16 +1,8 @@
-from flask import Flask, request, jsonify, render_template_string, send_from_directory
+from flask import Flask, request, jsonify, render_template_string
 import math
 import os
 
 app = Flask(__name__)
-
-# تحديد المجلد الرئيسي للمشروع بشكل ديناميكي لضمان الوصول للملفات
-BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-
-# الدالة البرمجية المسؤولة عن تمرير الشعار للمتصفح بأمان وبدون 404
-@app.route('/logo.jpg')
-def serve_logo():
-    return send_from_directory(BASE_DIR, 'logo.jpg')
 
 # ═══════════════════════════════════════════════════════════════
 # خوارزميات التثليث الراديوي والحسابات الجغرافية
@@ -194,7 +186,7 @@ def calculate_confidence(towers_used, signal_quality, environment, angle_quality
     return min(score, 100)
 
 # ═══════════════════════════════════════════════════════════════
-# واجهة العرض HTML المحدثة للتكامل مع شعار logo.jpg الأصلي
+# واجهة العرض HTML المحدثة - مع دمج لوجو المنظومة كـ Base64
 # ═══════════════════════════════════════════════════════════════
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
@@ -224,27 +216,21 @@ HTML_TEMPLATE = '''
             position: relative;
         }
         
-        /* طبقة مخصصة لعرض الشعار المائي بدقة وبدون حواف بيضاء مكسورة */
-        .watermark-overlay {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 480px;
-            height: 480px;
-            background-image: url('/logo.jpg');
-            background-repeat: no-repeat;
-            background-position: center;
-            background-size: contain;
-            opacity: 0.12;
-            z-index: 1;
-            pointer-events: none;
-            mix-blend-mode: initial; /* الحفاظ على تباين الألوان الداكنة للشعار */
+        /* الهيدر العلوي يحمل الآن اللوجو الصغير بجانب العنوان */
+        .header-title-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .header-logo {
+            width: 42px;
+            height: 42px;
+            object-fit: contain;
         }
 
         .container { max-width: 100%; height: 100vh; display: flex; flex-direction: column; padding: 10px; gap: 10px; position: relative; z-index: 2; }
-        .header { background: var(--card); padding: 12px 20px; border-radius: 12px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; backdrop-filter: blur(8px); }
-        .header h1 { font-size: 1.4em; font-weight: 800; background: linear-gradient(135deg, #3b82f6, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .header { background: var(--card); padding: 10px 20px; border-radius: 12px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; backdrop-filter: blur(8px); }
+        .header h1 { font-size: 1.3em; font-weight: 800; background: linear-gradient(135deg, #3b82f6, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .grid { display: flex; flex: 1; gap: 10px; min-height: 0; }
         .sidebar { width: 380px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; padding-right: 2px; position: relative; z-index: 5; }
         .sidebar::-webkit-scrollbar { width: 5px; }
@@ -258,6 +244,32 @@ HTML_TEMPLATE = '''
         .btn:hover { opacity: 0.9; transform: translateY(-1px); }
         .map-container { flex: 1; background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; position: relative; backdrop-filter: blur(8px); z-index: 4; }
         #map { height: 100%; width: 100%; }
+        
+        /* الحاوية الجانبية للشعار في قائمة الخريطة للمصداقية المهنية */
+        .map-watermark {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 1000;
+            background: rgba(15, 23, 42, 0.85);
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            pointer-events: none;
+        }
+        .map-watermark img {
+            width: 35px;
+            height: 35px;
+        }
+        .map-watermark span {
+            font-size: 0.8em;
+            font-weight: 700;
+            color: #f1f5f9;
+        }
+
         .map-legend { position: absolute; bottom: 20px; left: 20px; background: rgba(15, 23, 42, 0.9); padding: 12px; border-radius: 8px; border: 1px solid var(--border); z-index: 1000; font-size: 0.8em; backdrop-filter: blur(5px); }
         .legend-item { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
         .legend-icon { width: 12px; height: 12px; border-radius: 50%; }
@@ -274,11 +286,13 @@ HTML_TEMPLATE = '''
     </style>
 </head>
 <body>
-<div class="watermark-overlay"></div>
 <div class="container">
     <div class="header">
-        <h1>📊 نظام تتبع وتحليل قطاعات الإشارة - منظومة البيان</h1>
-        <div style="font-size: 0.85em; color: var(--text-muted);">مديرية أمن طرابلس - وزارة الداخلية</div>
+        <div class="header-title-container">
+            <img class="header-logo" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%230f172a' stroke='%232563eb' stroke-width='3'/><circle cx='50' cy='50' r='36' fill='none' stroke='%2310b981' stroke-width='1.5'/><polygon points='50,22 58,40 78,40 62,52 68,72 50,60 32,72 38,52 22,40 42,40' fill='%23fbbf24'/><path d='M30,50 Q50,65 70,50' stroke='%23f1f5f9' stroke-width='2' fill='none'/></svg>" alt="شعار البيان">
+            <h1>نظام تتبع وتحليل قطاعات الإشارة - منظومة البيان</h1>
+        </div>
+        <div style="font-size: 0.85em; color: var(--text-muted); font-weight: 700;">مديرية أمن طرابلس</div>
     </div>
     <div class="grid">
         <div class="sidebar">
@@ -357,6 +371,12 @@ HTML_TEMPLATE = '''
         </div>
         <div class="map-container">
             <div id="map"></div>
+            
+            <div class="map-watermark">
+                <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%231e293b' stroke='%2310b981' stroke-width='2'/><path d='M35,35 L65,35 L50,65 Z' fill='%233b82f6'/><circle cx='50' cy='45' r='6' fill='%23fbbf24'/></svg>" alt="أمن طرابلس">
+                <span>غرفة العمليات والتحليل الرقمي</span>
+            </div>
+
             <div class="map-legend">
                 <div style="font-weight: bold; margin-bottom: 5px; color:#60a5fa;">مفتاح الرموز الجغرافية</div>
                 <div class="legend-item"><div class="legend-icon" style="background:#f97316;"></div><span>البرج المستهدف الأساسي</span></div>
