@@ -240,7 +240,7 @@ HTML_TEMPLATE = '''
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>نظام تحديد المواقع الليبي - خريطة مدمجة</title>
+<title>نظام تحديد المواقع الخاص بوحدة البيان - خريطة مدمجة</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
@@ -629,7 +629,7 @@ input:focus, select:focus {
 <body>
 <div class="container">
     <div class="header">
-        <h1>🇱🇾 نظام تحديد المواقع الليبي</h1>
+        <h1>🇱🇾 نظام تحديد المواقع الخاص بوحدة البيان</h1>
         <p>خريطة قمر صناعي مدمجة - توليد 3 أبراج افتراضية - تثليث دقيق</p>
     </div>
 
