@@ -1,10 +1,25 @@
-from flask import Flask, request, jsonify, render_template_string
+from flask import Flask, request, jsonify, render_template_string, send_from_directory
 import math
+import os
 
 app = Flask(__name__)
 
+# تحديد المجلد الرئيسي للمشروع بشكل ديناميكي متوافق مع السيرفرات السحابية
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+
 # ═══════════════════════════════════════════════════════════════
-# توليد الأبراج الافتراضية - 3 أبراج فقط داخل نطاق القطاع
+# مسار آمن لقراءة صورة الشعار محلياً أو سحابياً
+# ═══════════════════════════════════════════════════════════════
+@app.route('/logo.jpg')
+def serve_logo():
+    if os.path.exists(os.path.join(BASE_DIR, 'logo.jpg')):
+        return send_from_directory(BASE_DIR, 'logo.jpg')
+    else:
+        # استجابة بديلة شفافة لمنع انهيار السيرفر (Status 1) في حال نسيان رفع الصورة
+        return "", 404
+
+# ═══════════════════════════════════════════════════════════════
+# خوارزميات التثليث الراديوي والحسابات الجغرافية
 # ═══════════════════════════════════════════════════════════════
 class TowerGenerator:
     @staticmethod
@@ -185,7 +200,7 @@ def calculate_confidence(towers_used, signal_quality, environment, angle_quality
     return min(score, 100)
 
 # ═══════════════════════════════════════════════════════════════
-# واجهة العرض HTML المحدثة مع دمج الشعار كخلفية ممتدة كاملة
+# واجهة العرض HTML المتكاملة
 # ═══════════════════════════════════════════════════════════════
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
@@ -215,16 +230,16 @@ HTML_TEMPLATE = '''
             position: relative;
         }
         
-        /* تأثير الشعار كخلفية كاملة ممتدة وعلامة مائية ثابتة */
+        /* علامة مائية ثابتة للشعار محلياً في خلفية الموقع */
         body::before {
             content: "";
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
-            background-image: url('https://images.gemini.googleusercontent.com/api/view?docid=F0_M342mB_7T9eM');
+            background-image: url('/logo.jpg');
             background-repeat: no-repeat;
             background-position: center;
-            background-size: 45%; /* حجم الشعار المتمركز في الخلفية */
-            opacity: 0.05; /* درجة الشفافية الخفيفة لعدم التشويش على البيانات */
+            background-size: 40%;
+            opacity: 0.05;
             z-index: -1;
             pointer-events: none;
         }
@@ -250,4 +265,298 @@ HTML_TEMPLATE = '''
         .legend-icon { width: 12px; height: 12px; border-radius: 50%; }
         .result-section { display: none; flex-direction: column; gap: 10px; }
         .result-section.active { display: flex; }
-        .
+        .mini-row { display: flex; justify-content: space-between; font-size: 0.85em; padding: 3px 0; border-bottom: 1px dashed rgba(255,255,255,0.05); }
+        .mini-label { color: var(--text-muted); }
+        .mini-value { color: #f1f5f9; font-weight: 600; direction: ltr; }
+        .confidence-container { margin-top: 8px; }
+        .confidence-bar { width: 100%; height: 6px; background: rgba(0,0,0,0.3); border-radius: 3px; overflow: hidden; margin-top: 4px; }
+        .confidence-fill { height: 100%; width: 0%; transition: width 0.5s ease; }
+        .loading { display: none; text-align: center; padding: 20px; color: var(--info); font-size: 0.9em; }
+        .loading.active { display: block; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>📊 نظام تتبع وتحليل قطاعات الإشارة - منظومة البيان</h1>
+        <div style="font-size: 0.85em; color: var(--text-muted);">مديرية أمن طرابلس - وزارة الداخلية</div>
+    </div>
+    <div class="grid">
+        <div class="sidebar">
+            <div class="card">
+                <div class="card-title">📡 مدخلات المحطة والخلية</div>
+                <div class="form-group">
+                    <label>معرف الخلية الرئيسي (Cell ID)</label>
+                    <input type="text" id="cellId" value="606-01-1021-8973">
+                </div>
+                <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div>
+                        <label>خط العرض (Lat)</label>
+                        <input type="number" id="lat" step="any" value="32.853826">
+                    </div>
+                    <div>
+                        <label>خط الطول (Lon)</label>
+                        <input type="number" id="lon" step="any" value="13.241509">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>الاتجاه الجغرافي المقدر</label>
+                    <select id="direction">
+                        <option value="auto">🔍 استخراج تلقائي مبني على الخوارزمية</option>
+                        <option value="شمال">شمال (0°)</option>
+                        <option value="شمال شرق">شمال شرق (45°)</option>
+                        <option value="شرق">شرق (90°)</option>
+                        <option value="جنوب شرق">جنوب شرق (135°)</option>
+                        <option value="جنوب">جنوب (180°)</option>
+                        <option value="جنوب غرب">جنوب غرب (225°)</option>
+                        <option value="غرب">غرب (270°)</option>
+                        <option value="شمال غرب">شمال غرب (315°)</option>
+                    </select>
+                </div>
+                <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div>
+                        <label>مستوى خسارة الإشارة</label>
+                        <select id="signal">
+                            <option value="-60">قوية (-60 dBm)</option>
+                            <option value="-78" selected>متوسطة (-78 dBm)</option>
+                            <option value="-95">ضعيفة (-95 dBm)</option>
+                            <option value="-110">ميتة (-110 dBm)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>التردد الراديوي</label>
+                        <select id="freq">
+                            <option value="900" selected>900 MHz (GSM)</option>
+                            <option value="1800">1800 MHz (DCS)</option>
+                            <option value="2100">2100 MHz (3G)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>الطبيعة الطبوغرافية (البيئة)</label>
+                    <select id="environment">
+                        <option value="urban" selected>مدنية مزدحمة (Urban)</option>
+                        <option value="suburban">ضواحي مفتوحة (Suburban)</option>
+                        <option value="rural">شبه صحراوية / ريفية (Rural)</option>
+                    </select>
+                </div>
+                <button class="btn" onclick="executeAnalysis()">🎯 إسقاط وبدء الحساب الجغرافي</button>
+            </div>
+
+            <div class="loading" id="loader">⏳ جاري موازنة مصفوفة التثليث الراديوي...</div>
+
+            <div class="result-section" id="resultsBox">
+                <div class="card">
+                    <div class="card-title">🔍 تفكيك وتحليل تفاصيل الخلية</div>
+                    <div id="cellDetails"></div>
+                </div>
+                <div class="card">
+                    <div class="card-title">🎯 تقدير المسافة الجغرافية والموثوقية</div>
+                    <div id="distanceDetails"></div>
+                </div>
+            </div>
+        </div>
+        <div class="map-container">
+            <div id="map"></div>
+            <div class="map-legend">
+                <div style="font-weight: bold; margin-bottom: 5px; color:#60a5fa;">مفتاح الرموز الجغرافية</div>
+                <div class="legend-item"><div class="legend-icon" style="background:#f97316;"></div><span>البرج المستهدف الأساسي</span></div>
+                <div class="legend-item"><div class="legend-icon" style="background:#8b5cf6;"></div><span>نقاط التثليث الافتراضية</span></div>
+                <div class="legend-item"><div class="legend-icon" style="background:#ef4444;"></div><span>دائرة التمركز بقطر 40 متر</span></div>
+                <div class="legend-item"><div class="legend-icon" style="background:#ec4899;"></div><span>المنطقة المحتملة لتواجد الهدف</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let map, markers = [], layers = [];
+
+function initMap() {
+    map = L.map('map', { center: [32.8538, 13.2415], zoom: 12, attributionControl: false });
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(map);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(map);
+}
+
+function cleanCanvas() {
+    markers.forEach(m => map.removeLayer(m));
+    layers.forEach(l => map.removeLayer(l));
+    markers = []; layers = [];
+}
+
+function drawVisualSector(lat, lon, angle, radius) {
+    let angleRad = (angle * Math.PI) / 180;
+    let endLat = lat + (radius / 111320) * Math.cos(angleRad);
+    let endLon = lon + (radius / (111320 * Math.cos((lat * Math.PI) / 180))) * Math.sin(angleRad);
+    
+    let centerLine = L.polyline([[lat, lon], [endLat, endLon]], { color: '#fbbf24', weight: 4, opacity: 0.95 }).addTo(map);
+    layers.push(centerLine);
+
+    let focusCircle = L.circle([endLat, endLon], {
+        radius: 20, 
+        color: '#ef4444',
+        fillColor: '#ef4444',
+        fillOpacity: 0.4,
+        weight: 2
+    }).addTo(map).bindPopup('<b>بؤرة الفحص الميداني المقدرة (القطر: 40 متر)</b>');
+    layers.push(focusCircle);
+
+    let points = [[lat, lon]];
+    let startAngle = angle - 60;
+    let endAngle = angle + 60;
+    for(let i = startAngle; i <= endAngle; i += 5) {
+        let r = (i * Math.PI) / 180;
+        let pLat = lat + (radius / 111320) * Math.cos(r);
+        let pLon = lon + (radius / (111320 * Math.cos((lat * Math.PI) / 180))) * Math.sin(r);
+        points.push([pLat, pLon]);
+    }
+    points.push([lat, lon]);
+    let arcArea = L.polygon(points, { color: '#fbbf24', fillColor: '#fbbf24', fillOpacity: 0.1, weight: 1, dashArray: '4,4' }).addTo(map);
+    layers.push(arcArea);
+}
+
+function executeAnalysis() {
+    document.getElementById('loader').classList.add('active');
+    let payload = {
+        cell_id: document.getElementById('cellId').value,
+        lat: parseFloat(document.getElementById('lat').value),
+        lon: parseFloat(document.getElementById('lon').value),
+        direction: document.getElementById('direction').value,
+        signal: parseInt(document.getElementById('signal').value),
+        freq: parseInt(document.getElementById('freq').value),
+        environment: document.getElementById('environment').value
+    };
+
+    fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById('loader').classList.remove('active');
+        if(data.status === 'success') {
+            renderInterfaceData(data);
+            plotGeographicalData(data.result);
+        }
+    });
+}
+
+function renderInterfaceData(data) {
+    document.getElementById('resultsBox').classList.add('active');
+    let cellHtml = `
+        <div class="mini-row"><span class="mini-label">المشغل المحلي</span><span class="mini-value" style="color:#60a5fa">${data.result.cell_info.provider}</span></div>
+        <div class="mini-row"><span class="mini-label">الرمز الدولي (MCC-MNC)</span><span class="mini-value">${data.result.cell_info.mcc} - ${data.result.cell_info.mnc}</span></div>
+        <div class="mini-row"><span class="mini-label">موقع الرمز (LAC-CID)</span><span class="mini-value">${data.result.cell_info.lac} - ${data.result.cell_info.cid}</span></div>
+        <div class="mini-row"><span class="mini-label">الزاوية المستخرجة</span><span class="mini-value">${data.result.towers.main.extracted_angle}°</span></div>
+    `;
+    document.getElementById('cellDetails').innerHTML = cellHtml;
+
+    let distanceHtml = `
+        <div class="mini-row"><span class="mini-label">مسافة البحث الافتراضية</span><span class="mini-value">${data.result.towers.main.estimated_distance.toFixed(1)} م</span></div>
+        <div class="mini-row"><span class="mini-label">بؤرة المعاينة الميدانية</span><span class="mini-value" style="color:#ef4444">دائرة قطرها 40 متر ثابتة</span></div>
+        <div class="confidence-container">
+            <div class="mini-row"><span class="mini-label">درجة الدقة والموثوقية الجغرافية</span><span class="mini-value" style="color:#10b981">${data.result.confidence}%</span></div>
+            <div class="confidence-bar"><div class="confidence-fill" style="width:${data.result.confidence}%; background:#10b981"></div></div>
+        </div>
+    `;
+    document.getElementById('distanceDetails').innerHTML = distanceHtml;
+}
+
+function plotGeographicalData(res) {
+    cleanCanvas();
+    let main = res.towers.main;
+    
+    drawVisualSector(main.lat, main.lon, main.final_angle, main.estimated_distance);
+
+    let mainMarker = L.marker([main.lat, main.lon], {
+        icon: L.divIcon({ html: `<div style="background:#f97316; width:16px; height:16px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 10px #f97316;"></div>`, className: '' })
+    }).addTo(map);
+    markers.push(mainMarker);
+
+    res.towers.virtual.forEach(vt => {
+        let vtM = L.marker([vt.lat, vt.lon], {
+            icon: L.divIcon({ html: `<div style="background:#8b5cf6; width:12px; height:12px; border-radius:50%; border:2px solid #fff;"></div>`, className: '' })
+        }).addTo(map);
+        markers.push(vtM);
+    });
+
+    let final = res.final_result;
+    let phoneMarker = L.marker([final.lat, final.lon], {
+        icon: L.divIcon({ html: `<div style="background:#ec4899; width:18px; height:18px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 12px #ec4899;"></div>`, className: '' })
+    }).addTo(map).bindPopup('<b>الموقع النهائي بعد التثليث الموزون</b>');
+    markers.push(phoneMarker);
+
+    let group = new L.featureGroup(markers);
+    map.fitBounds(group.getBounds().pad(0.3));
+}
+
+window.onload = initMap;
+</script>
+</body>
+</html>
+'''
+
+@app.route('/')
+def index():
+    return render_template_string(HTML_TEMPLATE)
+
+@app.route('/api/analyze', methods=['POST'])
+def api_analyze():
+    data = request.get_json() or {}
+    cell_id_raw = data.get('cell_id', '')
+    main_lat = float(data.get('lat', 32.853826))
+    main_lon = float(data.get('lon', 13.241509))
+    user_direction = data.get('direction', 'auto')
+    rssi = int(data.get('signal', -75))
+    freq = int(data.get('freq', 900))
+    env = data.get('environment', 'urban')
+
+    cell_analysis = CellIDAnalyzer.parse_cell_id(cell_id_raw)
+    ext_angle = cell_analysis['angle_info']['angle'] if cell_analysis['angle_info'] else 0
+    ext_dir = cell_analysis['angle_info']['direction'] if cell_analysis['angle_info'] else "شمال"
+    
+    if user_direction == "auto":
+        final_angle = ext_angle
+        refinement_status = "استخراج آلي كامل من خوارزمية السيكتور"
+    else:
+        final_angle, refinement_status = CellIDAnalyzer.refine_angle(user_direction, cell_analysis['angle_info'])
+
+    est_distance = smart_distance_estimate(rssi, freq_mhz=freq, environment=env)
+    virtual_towers = TowerGenerator.generate_virtual_towers(main_lat, main_lon, est_distance, final_angle)
+
+    towers_for_tri = [{'lat': main_lat, 'lon': main_lon, 'distance': est_distance, 'weight': 1.0}]
+    for vt in virtual_towers:
+        towers_for_tri.append({
+            'lat': vt['lat'], 'lon': vt['lon'], 'distance': vt['distance_from_main'] * 0.5, 'weight': vt['weight']
+        })
+    
+    final_coords = weighted_centroid_trilateration(towers_for_tri)
+    confidence = calculate_confidence(len(virtual_towers), rssi, env, refinement_status)
+
+    response_payload = {
+        'status': 'success',
+        'result': {
+            'cell_info': cell_analysis,
+            'confidence': confidence,
+            'towers': {
+                'main': {
+                    'lat': main_lat, 'lon': main_lon, 'estimated_distance': est_distance,
+                    'extracted_angle': ext_angle, 'extracted_direction': ext_dir,
+                    'final_angle': final_angle, 'refinement': refinement_status
+                },
+                'virtual': virtual_towers
+            },
+            'final_result': {
+                'lat': round(final_coords['lat'], 6) if final_coords else main_lat,
+                'lon': round(final_coords['lon'], 6) if final_coords else main_lon,
+                'distance_from_main': round(haversine(main_lat, main_lon, final_coords['lat'], final_coords['lon']), 1) if final_coords else 0
+            }
+        }
+    }
+    return jsonify(response_payload)
+
+if __name__ == '__main__':
+    # ضبط البورت ليتوافق مع المنصات السحابية
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
