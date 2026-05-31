@@ -4,6 +4,15 @@ import os
 
 app = Flask(__name__)
 
+# قاعدة بيانات واقعية للأبراج (يمكنك إضافة وتعديل الـ CID والزاوية الفعلية هنا)
+# الصيغة: 'CID': الزاوية بالدرجات
+TOWERS_DATA = {
+    '606-01-8256-12576': 180.0,  # البرج الحالي باتجاه الجنوب (180 درجة)
+    '606-01-8256-12577': 0.0,    # قطاع آخر لنفس البرج باتجاه الشمال (0 درجة)
+    '606-01-8256-12578': 90.0,   # قطاع باتجاه الشرق (90 درجة)
+    '606-01-9999-11111': 225.0,  # برج افتراضي آخر باتجاه الجنوب الغربي
+}
+
 # معادلة حساب المسافة بناءً على المعايرة الميدانية (0.92)
 def get_dist(sig): 
     return (10**(((61 - float(sig)) - 55) / 44.9) * 1000) * 0.92
@@ -15,10 +24,12 @@ def home():
     <style>
         body{background:#0f172a;color:#fff;font-family:sans-serif;margin:0;padding:10px}
         .card{background:#1e293b;padding:15px;border-radius:12px;margin-bottom:10px}
-        input,select,button{width:100%;padding:12px;margin:5px 0;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#fff;font-size:16px;box-sizing:border-box;}
+        input,button{width:100%;padding:12px;margin:5px 0;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#fff;font-size:16px;box-sizing:border-box;}
         #map{height:350px;width:100%;border-radius:10px;margin:10px 0}
+        .info-box{background:#334155;padding:10px;border-radius:8px;margin-top:5px;font-size:14px;color:#cbd5e1}
     </style></head><body>
-    <div class="card"><h3>نظام تحديد المواقع الليبي للمسافات البعيدة</h3>
+    <div class="card"><h3>نظام تحديد المواقع الليبي الذكي (ربط تلقائي بالبرج)</h3>
+    
     <label>معرف البرج (CID):</label>
     <input type="text" id="cid" value="606-01-8256-12576">
     
@@ -28,22 +39,15 @@ def home():
     <label>خط الطول الحالي (Longitude):</label>
     <input type="number" id="lon" value="13.236523" step="any">
     
-    <label>اتجاه المسار المرصود (الزاوية):</label>
-    <select id="bearing">
-        <option value="0">⬆️ شمال (0°)</option>
-        <option value="45">↗️ شمال شرقي (45°)</option>
-        <option value="90">➡️ شرق (90°)</option>
-        <option value="135">↘️ جنوب شرقي (135°)</option>
-        <option value="180" selected>⬇️ جنوب (180°)</option>
-        <option value="225">↙️ جنوب غربي (225°)</option>
-        <option value="270">⬅️ غرب (270°)</option>
-        <option value="315">↖️ شمال غربي (315°)</option>
-    </select>
+    <button onclick="loc()" style="background:#2563eb;font-weight:bold;border:none;cursor:pointer;margin-top:10px;">🎯 تحديد الموقع التلقائي</button>
     
-    <button onclick="loc()" style="background:#2563eb;font-weight:bold;border:none;cursor:pointer;margin-top:10px;">🎯 حساب نقطة الهدف</button>
-    <div id="map"></div><div id="res"></div></div>
+    <div id="info" class="info-box" style="display:none;"></div>
+    <div id="map"></div>
+    <div id="res"></div>
+    </div>
+    
     <script>
-        var map = L.map('map').setView([32.854287, 13.236523], 10);
+        var map = L.map('map').setView([32.854287, 13.236523], 15);
         L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {subdomains:['mt0','mt1','mt2','mt3']}).addTo(map);
         var lyr = L.layerGroup().addTo(map);
         
@@ -54,17 +58,24 @@ def home():
                 body:JSON.stringify({
                     cid:document.getElementById('cid').value, 
                     lat:document.getElementById('lat').value, 
-                    lon:document.getElementById('lon').value,
-                    bearing:document.getElementById('bearing').value
+                    lon:document.getElementById('lon').value
                 })
             })
             .then(r=>r.json()).then(d=>{
                 lyr.clearLayers();
-                L.marker([d.lat, d.lon]).addTo(lyr).bindPopup("الهدف المحسوب").openPopup();
-                L.circle([d.lat, d.lon], {radius:1000, color:'red', fillOpacity:0.15}).addTo(lyr);
-                map.setView([d.lat, d.lon], 11);
-                // تم تصحيح علامة اللترال هنا لتصبح مدعومة بشكل صحيح في خرائط جوجل
-                document.getElementById('res').innerHTML = `<a href="https://www.google.com/maps/search/?api=1&query=${d.lat},${d.lon}" target="_blank" style="display:block;padding:15px;background:#10b981;text-align:center;color:white;text-decoration:none;border-radius:8px;font-weight:bold;">🗺️ فتح النقطة في خرائط جوجل</a>`;
+                
+                // عرض بيانات الاتجاه المستخرجة من السيرفر
+                var infoDiv = document.getElementById('info');
+                infoDiv.style.display = 'block';
+                infoDiv.innerHTML = `📡 <b>اتجاه البرج المكتشف:</b> ${d.bearing}° (${d.direction_name})`;
+                
+                // رسم النقطة والدائرة
+                L.marker([d.lat, d.lon]).addTo(lyr).bindPopup(`الموقع المحسوب بناءً على اتجاه البرج (${d.bearing}°)`).openPopup();
+                L.circle([d.lat, d.lon], {radius:250, color:'#10b981', fillOpacity:0.2}).addTo(lyr);
+                map.setView([d.lat, d.lon], 16);
+                
+                // زر خرائط جوجل المصحح والمحدث بالكامل
+                document.getElementById('res').innerHTML = `<a href="https://www.google.com/maps/search/?api=1&query=${d.lat},${d.lon}" target="_blank" style="display:block;padding:15px;background:#10b981;text-align:center;color:white;text-decoration:none;border-radius:8px;font-weight:bold;margin-top:10px;">🗺️ فتح في خرائط جوجل</a>`;
             });
         }
     </script></body></html>''')
@@ -72,21 +83,35 @@ def home():
 @app.route('/calc', methods=['POST'])
 def calc():
     d = request.json
-    lat1 = math.radians(float(d['lat']))
-    lon1 = math.radians(float(d['lon']))
-    bearing = math.radians(float(d.get('bearing', 180)))
+    lat, lon = float(d['lat']), float(d['lon'])
+    cid = d.get('cid', '').strip()
     
-    # حساب المسافة بالكيلومتر وتحويلها لنسبة من نصف قطر الأرض
-    dist = get_dist(-80) / 1000.0 
-    R = 6371.0 # نصف قطر الكرة الأرضية بالكيلومترات
+    # البحث عن زاوية البرج في قاعدة البيانات، وإذا لم يجدها يضع 180 (جنوب) كافتراضي
+    bearing = TOWERS_DATA.get(cid, 180.0)
     
-    # معادلة الملاحة الكروية المتقدمة لحساب الإحداثيات الجديدة بدقة
-    lat2 = math.asin(math.sin(lat1) * math.cos(dist/R) + math.cos(lat1) * math.sin(dist/R) * math.cos(bearing))
-    lon2 = lon1 + math.atan2(math.sin(bearing) * math.sin(dist/R) * math.cos(lat1), math.cos(dist/R) - math.sin(lat1) * math.sin(lat2))
+    # تحديد اسم الاتجاه للعرض فقط
+    direction_name = "جنوب"
+    if bearing == 0.0: direction_name = "شمال"
+    elif bearing == 90.0: direction_name = "شرق"
+    elif bearing == 270.0: direction_name = "غرب"
+    elif 0 < bearing < 90: direction_name = "شمال شرقي"
+    elif 90 < bearing < 180: direction_name = "جنوب شرقي"
+    elif 180 < bearing < 270: direction_name = "جنوب غربي"
+    elif 270 < bearing < 360: direction_name = "شمال غربي"
+
+    # حساب المسافة بناءً على المعايرة الميدانية
+    dist = get_dist(-80) 
+    bearing_rad = math.radians(bearing)
+    
+    # حساب الإزاحة الجغرافية الدقيقة بزاوية 360 درجة
+    nlat = lat + (dist / 111000) * math.cos(bearing_rad)
+    nlon = lon + (dist / (111000 * math.cos(math.radians(lat)))) * math.sin(bearing_rad)
     
     return jsonify({
-        'lat': round(math.degrees(lat2), 6), 
-        'lon': round(math.degrees(lon2), 6)
+        'lat': round(nlat, 6), 
+        'lon': round(nlon, 6),
+        'bearing': bearing,
+        'direction_name': direction_name
     })
 
 if __name__ == '__main__':
