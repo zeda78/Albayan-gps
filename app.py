@@ -266,9 +266,9 @@ HTML_TEMPLATE = '''
     <div class="header">
         <div class="header-title-container">
             <img class="header-logo" src="https://raw.githubusercontent.com/zeda78/Albayan-gps/main/منظومة-البيان.jpg" onerror="this.src='https://raw.githubusercontent.com/zeda78/Albayan-gps/main/logo.png'" alt="شعار البيان">
-            <h1>نظام تتبع وتحليل قطاعات الإشارة - منظومة البيان</h1>
+            <h1>مديرية أمن طرابلس - وحدة التقصي و البيان - منظومة التتبع و استخراج البيانات</h1>
         </div>
-        <div style="font-size: 0.85em; color: var(--text-muted); font-weight: 700;">مديرية أمن طرابلس</div>
+        <div style="font-size: 0.85em; color: var(--text-muted); font-weight: 700;"> </div>
     </div>
     <div class="grid">
         <div class="sidebar">
