@@ -629,7 +629,7 @@ input:focus, select:focus {
 <body>
 <div class="container">
     <div class="header">
-        <h1>🇱🇾 نظام تحديد المواقع الخاص بوحدة البيان</h1>
+        <h1> نظام تحديد المواقع الخاص بوحدة البيان</h1>
         <p>خريطة قمر صناعي مدمجة </p>
     </div>
 
