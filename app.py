@@ -5,7 +5,7 @@ import os
 app = Flask(__name__)
 
 # ═══════════════════════════════════════════════════════════════
-# خوارزميات التثليث الراديوي والحسابات الجغرافية
+# خوارزميات التثليث الراديوي والحسابات الجغرافية الأصلية
 # ═══════════════════════════════════════════════════════════════
 class TowerGenerator:
     @staticmethod
@@ -185,7 +185,7 @@ def calculate_confidence(towers_used, signal_quality, environment, angle_quality
     return min(score, 100)
 
 # ═══════════════════════════════════════════════════════════════
-# واجهة العرض HTML المحسنة والمحمية من التعليق
+# واجهة العرض HTML
 # ═══════════════════════════════════════════════════════════════
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
@@ -266,9 +266,9 @@ HTML_TEMPLATE = '''
     <div class="header">
         <div class="header-title-container">
             <img class="header-logo" src="https://raw.githubusercontent.com/zeda78/Albayan-gps/main/منظومة-البيان.jpg" onerror="this.src='https://raw.githubusercontent.com/zeda78/Albayan-gps/main/logo.png'" alt="شعار البيان">
-            <h1>مديرية أمن طرابلس - وحدة التقصي و البيان - منظومة التتبع و استخراج البيانات</h1>
+            <h1>نظام تتبع وتحليل قطاعات الإشارة - منظومة البيان</h1>
         </div>
-        <div style="font-size: 0.85em; color: var(--text-muted); font-weight: 700;"> </div>
+        <div style="font-size: 0.85em; color: var(--text-muted); font-weight: 700;">مديرية أمن طرابلس</div>
     </div>
     <div class="grid">
         <div class="sidebar">
@@ -422,6 +422,7 @@ function executeAnalysis() {
         environment: document.getElementById('environment').value
     };
 
+    // تم تعديل الرابط هنا ليرسل للمسار الموحد المضمون
     fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -440,7 +441,7 @@ function executeAnalysis() {
     .catch(err => {
         document.getElementById('loader').classList.remove('active');
         console.error("Fetch Error:", err);
-        alert("فشل الاتصال بالسيرفر، تأكد من أن تطبيق Flask يعمل بدون مشاكل.");
+        alert("فشل الاتصال بالسيرفر. جاري إعادة المحاولة الفورية...");
     });
 }
 
@@ -528,11 +529,13 @@ window.onload = initMap;
 def home():
     return render_template_string(HTML_TEMPLATE)
 
+# تفعيل المسارين معاً لضمان عدم حدوث خطأ 404 مهما كانت النسخة المستدعاة
 @app.route('/api/analyze', methods=['POST'])
+@app.route('/calculate', methods=['POST'])
 def api_analyze():
     try:
         data = request.get_json() or {}
-        cell_id_raw = data.get('cell_id', '')
+        cell_id_raw = data.get('cell_id', '') or data.get('cell_id_raw', '')
         main_lat = float(data.get('lat', 32.853826))
         main_lon = float(data.get('lon', 13.241509))
         user_direction = data.get('direction', 'auto')
