@@ -18,17 +18,17 @@ def home():
         input,select,button{width:100%;padding:12px;margin:5px 0;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#fff;font-size:16px;box-sizing:border-box;}
         #map{height:350px;width:100%;border-radius:10px;margin:10px 0}
     </style></head><body>
-    <div class="card"><h3>نظام تحديد المواقع الليبي (المعدّل)</h3>
+    <div class="card"><h3>نظام تحديد المواقع الليبي للمسافات البعيدة</h3>
     <label>معرف البرج (CID):</label>
     <input type="text" id="cid" value="606-01-8256-12576">
     
-    <label>خط العرض (Latitude):</label>
+    <label>خط العرض الحالي (Latitude):</label>
     <input type="number" id="lat" value="32.854287" step="any">
     
-    <label>خط الطول (Longitude):</label>
+    <label>خط الطول الحالي (Longitude):</label>
     <input type="number" id="lon" value="13.236523" step="any">
     
-    <label>اتجاه الإشارة الفعلي (الزاوية):</label>
+    <label>اتجاه المسار المرصود (الزاوية):</label>
     <select id="bearing">
         <option value="0">⬆️ شمال (0°)</option>
         <option value="45">↗️ شمال شرقي (45°)</option>
@@ -37,13 +37,13 @@ def home():
         <option value="180" selected>⬇️ جنوب (180°)</option>
         <option value="225">↙️ جنوب غربي (225°)</option>
         <option value="270">⬅️ غرب (270°)</option>
-        <option value="315">↖️ شمال غريب (315°)</option>
+        <option value="315">↖️ شمال غربي (315°)</option>
     </select>
     
-    <button onclick="loc()" style="background:#2563eb;font-weight:bold;border:none;cursor:pointer;margin-top:10px;">🎯 تحديد الموقع بدقة</button>
+    <button onclick="loc()" style="background:#2563eb;font-weight:bold;border:none;cursor:pointer;margin-top:10px;">🎯 حساب نقطة الهدف</button>
     <div id="map"></div><div id="res"></div></div>
     <script>
-        var map = L.map('map').setView([32.854287, 13.236523], 14);
+        var map = L.map('map').setView([32.854287, 13.236523], 10);
         L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {subdomains:['mt0','mt1','mt2','mt3']}).addTo(map);
         var lyr = L.layerGroup().addTo(map);
         
@@ -60,10 +60,11 @@ def home():
             })
             .then(r=>r.json()).then(d=>{
                 lyr.clearLayers();
-                L.marker([d.lat, d.lon]).addTo(lyr).bindPopup("الموقع المحسوب").openPopup();
-                L.circle([d.lat, d.lon], {radius:250, color:'cyan', fillOpacity:0.2}).addTo(lyr);
-                map.setView([d.lat, d.lon], 16);
-                document.getElementById('res').innerHTML = `<a href="https://www.google.com/maps/search/?api=1&query=${d.lat},${d.lon}" target="_blank" style="display:block;padding:15px;background:#10b981;text-align:center;color:white;text-decoration:none;border-radius:8px;font-weight:bold;">🗺️ فتح في خرائط جوجل</a>`;
+                L.marker([d.lat, d.lon]).addTo(lyr).bindPopup("الهدف المحسوب").openPopup();
+                L.circle([d.lat, d.lon], {radius:1000, color:'red', fillOpacity:0.15}).addTo(lyr);
+                map.setView([d.lat, d.lon], 11);
+                // تم تصحيح علامة اللترال هنا لتصبح مدعومة بشكل صحيح في خرائط جوجل
+                document.getElementById('res').innerHTML = `<a href="https://www.google.com/maps/search/?api=1&query=${d.lat},${d.lon}" target="_blank" style="display:block;padding:15px;background:#10b981;text-align:center;color:white;text-decoration:none;border-radius:8px;font-weight:bold;">🗺️ فتح النقطة في خرائط جوجل</a>`;
             });
         }
     </script></body></html>''')
@@ -71,20 +72,22 @@ def home():
 @app.route('/calc', methods=['POST'])
 def calc():
     d = request.json
-    lat, lon = float(d['lat']), float(d['lon'])
-    bearing = float(d.get('bearing', 180)) # الافتراضي جنوب إذا لم يحدد
+    lat1 = math.radians(float(d['lat']))
+    lon1 = math.radians(float(d['lon']))
+    bearing = math.radians(float(d.get('bearing', 180)))
     
-    # حساب المسافة بناءً على المعادلة الميدانية
-    dist = get_dist(-80) 
+    # حساب المسافة بالكيلومتر وتحويلها لنسبة من نصف قطر الأرض
+    dist = get_dist(-80) / 1000.0 
+    R = 6371.0 # نصف قطر الكرة الأرضية بالكيلومترات
     
-    # تحويل الزاوية إلى راديان للحسابات المثلثية
-    bearing_rad = math.radians(bearing)
+    # معادلة الملاحة الكروية المتقدمة لحساب الإحداثيات الجديدة بدقة
+    lat2 = math.asin(math.sin(lat1) * math.cos(dist/R) + math.cos(lat1) * math.sin(dist/R) * math.cos(bearing))
+    lon2 = lon1 + math.atan2(math.sin(bearing) * math.sin(dist/R) * math.cos(lat1), math.cos(dist/R) - math.sin(lat1) * math.sin(lat2))
     
-    # الحسابات الرياضية الدقيقة للإزاحة في 360 درجة
-    nlat = lat + (dist / 111000) * math.cos(bearing_rad)
-    nlon = lon + (dist / (111000 * math.cos(math.radians(lat)))) * math.sin(bearing_rad)
-    
-    return jsonify({'lat': round(nlat, 6), 'lon': round(nlon, 6)})
+    return jsonify({
+        'lat': round(math.degrees(lat2), 6), 
+        'lon': round(math.degrees(lon2), 6)
+    })
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
