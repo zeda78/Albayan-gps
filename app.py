@@ -185,7 +185,7 @@ def calculate_confidence(towers_used, signal_quality, environment, angle_quality
     return min(score, 100)
 
 # ═══════════════════════════════════════════════════════════════
-# واجهة العرض HTML
+# واجهة العرض الهيكلية المحسنة والمطابقة للهوية الرسمية
 # ═══════════════════════════════════════════════════════════════
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
@@ -193,7 +193,7 @@ HTML_TEMPLATE = '''
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام التحليل الجغرافي - منظومة البيان</title>
+    <title>مديرية أمن طرابلس - منظومة البيان</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
@@ -215,11 +215,9 @@ HTML_TEMPLATE = '''
             position: relative;
         }
         
-        .header-title-container { display: flex; align-items: center; gap: 12px; }
-
         .container { max-width: 100%; height: 100vh; display: flex; flex-direction: column; padding: 10px; gap: 10px; position: relative; z-index: 2; }
-        .header { background: var(--card); padding: 10px 20px; border-radius: 12px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; backdrop-filter: blur(8px); }
-        .header h1 { font-size: 1.3em; font-weight: 800; background: linear-gradient(135deg, #3b82f6, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .header { background: var(--card); padding: 12px 20px; border-radius: 12px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; backdrop-filter: blur(8px); }
+        .header h1 { font-size: 1.25em; font-weight: 800; background: linear-gradient(135deg, #3b82f6, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .grid { display: flex; flex: 1; gap: 10px; min-height: 0; }
         .sidebar { width: 380px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; padding-right: 2px; position: relative; z-index: 5; }
         .sidebar::-webkit-scrollbar { width: 5px; }
@@ -259,10 +257,10 @@ HTML_TEMPLATE = '''
 <body>
 <div class="container">
     <div class="header">
-        <div class="header-title-container">
-            <h1>نظام تتبع وتحليل قطاعات الإشارة - منظومة البيان</h1>
+        <h1>مديرية أمن طرابلس - وحدة التقصي والبيان - منظومة التتبع واستخراج البيانات</h1>
+        <div style="font-size: 0.85em; color: #60a5fa; font-weight: 700; display: flex; align-items: center; gap: 5px;">
+            <span>● الاتصال آمن</span>
         </div>
-        <div style="font-size: 0.85em; color: var(--text-muted); font-weight: 700;">مديرية أمن طرابلس</div>
     </div>
     <div class="grid">
         <div class="sidebar">
