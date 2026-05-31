@@ -4,19 +4,14 @@ import os
 
 app = Flask(__name__)
 
-# تحديد المجلد الرئيسي للمشروع بشكل ديناميكي متوافق مع السيرفرات السحابية
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
-# ═══════════════════════════════════════════════════════════════
-# مسار آمن لقراءة صورة الشعار محلياً أو سحابياً
-# ═══════════════════════════════════════════════════════════════
+# مسار آمن لقراءة صورة الشعار
 @app.route('/logo.jpg')
 def serve_logo():
     if os.path.exists(os.path.join(BASE_DIR, 'logo.jpg')):
         return send_from_directory(BASE_DIR, 'logo.jpg')
-    else:
-        # استجابة بديلة شفافة لمنع انهيار السيرفر (Status 1) في حال نسيان رفع الصورة
-        return "", 404
+    return "", 404
 
 # ═══════════════════════════════════════════════════════════════
 # خوارزميات التثليث الراديوي والحسابات الجغرافية
@@ -200,7 +195,7 @@ def calculate_confidence(towers_used, signal_quality, environment, angle_quality
     return min(score, 100)
 
 # ═══════════════════════════════════════════════════════════════
-# واجهة العرض HTML المتكاملة
+# واجهة العرض HTML المتكاملة مع طبقات الشعار المحسنة
 # ═══════════════════════════════════════════════════════════════
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
@@ -230,17 +225,20 @@ HTML_TEMPLATE = '''
             position: relative;
         }
         
-        /* علامة مائية ثابتة للشعار محلياً في خلفية الموقع */
+        /* علامة مائية ثابتة ومحسنة لتبرز خلف لوحات التحكم */
         body::before {
             content: "";
             position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 500px;
+            height: 500px;
             background-image: url('/logo.jpg');
             background-repeat: no-repeat;
             background-position: center;
-            background-size: 40%;
-            opacity: 0.05;
-            z-index: -1;
+            background-size: contain;
+            opacity: 0.12;
+            z-index: 0;
             pointer-events: none;
         }
 
@@ -248,7 +246,7 @@ HTML_TEMPLATE = '''
         .header { background: var(--card); padding: 12px 20px; border-radius: 12px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; backdrop-filter: blur(8px); }
         .header h1 { font-size: 1.4em; font-weight: 800; background: linear-gradient(135deg, #3b82f6, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .grid { display: flex; flex: 1; gap: 10px; min-height: 0; }
-        .sidebar { width: 380px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; padding-right: 2px; }
+        .sidebar { width: 380px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; padding-right: 2px; position: relative; z-index: 2; }
         .sidebar::-webkit-scrollbar { width: 5px; }
         .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
         .card { background: var(--card); border-radius: 12px; padding: 15px; border: 1px solid var(--border); backdrop-filter: blur(8px); }
@@ -258,7 +256,7 @@ HTML_TEMPLATE = '''
         input, select { width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: rgba(15, 23, 42, 0.8); color: var(--text); font-family: 'Cairo'; font-size: 0.9em; }
         .btn { width: 100%; padding: 10px; border-radius: 8px; border: none; font-family: 'Cairo'; font-size: 0.95em; font-weight: 700; cursor: pointer; transition: all 0.2s; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; }
         .btn:hover { opacity: 0.9; transform: translateY(-1px); }
-        .map-container { flex: 1; background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; position: relative; backdrop-filter: blur(8px); }
+        .map-container { flex: 1; background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; position: relative; backdrop-filter: blur(8px); z-index: 2; }
         #map { height: 100%; width: 100%; }
         .map-legend { position: absolute; bottom: 20px; left: 20px; background: rgba(15, 23, 42, 0.9); padding: 12px; border-radius: 8px; border: 1px solid var(--border); z-index: 1000; font-size: 0.8em; backdrop-filter: blur(5px); }
         .legend-item { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
@@ -497,10 +495,6 @@ window.onload = initMap;
 </html>
 '''
 
-@app.route('/')
-def index():
-    return render_template_string(HTML_TEMPLATE)
-
 @app.route('/api/analyze', methods=['POST'])
 def api_analyze():
     data = request.get_json() or {}
@@ -557,6 +551,5 @@ def api_analyze():
     return jsonify(response_payload)
 
 if __name__ == '__main__':
-    # ضبط البورت ليتوافق مع المنصات السحابية
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
