@@ -186,7 +186,7 @@ def calculate_confidence(towers_used, signal_quality, environment, angle_quality
     return min(score, 100)
 
 # ═══════════════════════════════════════════════════════════════
-# واجهة العرض HTML المحدثة - مع دمج لوجو المنظومة كـ Base64
+# واجهة العرض HTML - تم دمج الشعار الرسمي الفعلي للمنظومة هنا
 # ═══════════════════════════════════════════════════════════════
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
@@ -216,16 +216,16 @@ HTML_TEMPLATE = '''
             position: relative;
         }
         
-        /* الهيدر العلوي يحمل الآن اللوجو الصغير بجانب العنوان */
         .header-title-container {
             display: flex;
             align-items: center;
             gap: 12px;
         }
         .header-logo {
-            width: 42px;
-            height: 42px;
+            width: 45px;
+            height: 45px;
             object-fit: contain;
+            filter: drop-shadow(0 0 4px rgba(37, 99, 235, 0.5));
         }
 
         .container { max-width: 100%; height: 100vh; display: flex; flex-direction: column; padding: 10px; gap: 10px; position: relative; z-index: 2; }
@@ -245,27 +245,28 @@ HTML_TEMPLATE = '''
         .map-container { flex: 1; background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; position: relative; backdrop-filter: blur(8px); z-index: 4; }
         #map { height: 100%; width: 100%; }
         
-        /* الحاوية الجانبية للشعار في قائمة الخريطة للمصداقية المهنية */
         .map-watermark {
             position: absolute;
             top: 15px;
             right: 15px;
             z-index: 1000;
-            background: rgba(15, 23, 42, 0.85);
-            padding: 8px 12px;
+            background: rgba(15, 23, 42, 0.9);
+            padding: 8px 14px;
             border-radius: 8px;
             border: 1px solid var(--border);
             display: flex;
             align-items: center;
             gap: 10px;
             pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
         }
         .map-watermark img {
-            width: 35px;
-            height: 35px;
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
         }
         .map-watermark span {
-            font-size: 0.8em;
+            font-size: 0.85em;
             font-weight: 700;
             color: #f1f5f9;
         }
@@ -289,7 +290,7 @@ HTML_TEMPLATE = '''
 <div class="container">
     <div class="header">
         <div class="header-title-container">
-            <img class="header-logo" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%230f172a' stroke='%232563eb' stroke-width='3'/><circle cx='50' cy='50' r='36' fill='none' stroke='%2310b981' stroke-width='1.5'/><polygon points='50,22 58,40 78,40 62,52 68,72 50,60 32,72 38,52 22,40 42,40' fill='%23fbbf24'/><path d='M30,50 Q50,65 70,50' stroke='%23f1f5f9' stroke-width='2' fill='none'/></svg>" alt="شعار البيان">
+            <img class="header-logo" src="/logo.jpg" onerror="this.src='https://raw.githubusercontent.com/zeda78/Albayan-gps/main/logo.jpg'" alt="شعار البيان">
             <h1>نظام تتبع وتحليل قطاعات الإشارة - منظومة البيان</h1>
         </div>
         <div style="font-size: 0.85em; color: var(--text-muted); font-weight: 700;">مديرية أمن طرابلس</div>
@@ -373,7 +374,7 @@ HTML_TEMPLATE = '''
             <div id="map"></div>
             
             <div class="map-watermark">
-                <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%231e293b' stroke='%2310b981' stroke-width='2'/><path d='M35,35 L65,35 L50,65 Z' fill='%233b82f6'/><circle cx='50' cy='45' r='6' fill='%23fbbf24'/></svg>" alt="أمن طرابلس">
+                <img src="/logo.jpg" onerror="this.src='https://raw.githubusercontent.com/zeda78/Albayan-gps/main/logo.jpg'" alt="أمن طرابلس">
                 <span>غرفة العمليات والتحليل الرقمي</span>
             </div>
 
