@@ -194,7 +194,7 @@ def calculate_confidence(towers_used, signal_quality, environment, angle_quality
     return min(score, 100)
 
 # ═══════════════════════════════════════════════════════════════
-# واجهة العرض HTML المحدثة مع جلب مباشر للمسار المؤصل للشعار
+# واجهة العرض HTML المحدثة للتكامل مع شعار logo.jpg الأصلي
 # ═══════════════════════════════════════════════════════════════
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
@@ -212,7 +212,7 @@ HTML_TEMPLATE = '''
             --primary: #2563eb; --primary-dark: #1d4ed8; --success: #10b981;
             --warning: #f59e0b; --danger: #ef4444; --info: #06b6d4;
             --virtual: #8b5cf6; --main: #f97316; --phone: #ec4899;
-            --bg: #0f172a; --card: rgba(30, 41, 59, 0.85); --border: #334155;
+            --bg: #0f172a; --card: rgba(30, 41, 59, 0.88); --border: #334155;
             --text: #f1f5f9; --text-muted: #94a3b8;
         }
         body { 
@@ -224,28 +224,29 @@ HTML_TEMPLATE = '''
             position: relative;
         }
         
-        /* العلامة المائية المربوطة بالمسار الآمن للملف */
-        body::before {
-            content: "";
+        /* طبقة مخصصة لعرض الشعار المائي بدقة وبدون حواف بيضاء مكسورة */
+        .watermark-overlay {
             position: absolute;
-            top: 55%; left: 50%;
+            top: 50%;
+            left: 50%;
             transform: translate(-50%, -50%);
-            width: 440px;
-            height: 440px;
+            width: 480px;
+            height: 480px;
             background-image: url('/logo.jpg');
             background-repeat: no-repeat;
             background-position: center;
             background-size: contain;
-            opacity: 0.15;
-            z-index: 0;
+            opacity: 0.12;
+            z-index: 1;
             pointer-events: none;
+            mix-blend-mode: initial; /* الحفاظ على تباين الألوان الداكنة للشعار */
         }
 
-        .container { max-width: 100%; height: 100vh; display: flex; flex-direction: column; padding: 10px; gap: 10px; position: relative; z-index: 1; }
+        .container { max-width: 100%; height: 100vh; display: flex; flex-direction: column; padding: 10px; gap: 10px; position: relative; z-index: 2; }
         .header { background: var(--card); padding: 12px 20px; border-radius: 12px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; backdrop-filter: blur(8px); }
         .header h1 { font-size: 1.4em; font-weight: 800; background: linear-gradient(135deg, #3b82f6, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .grid { display: flex; flex: 1; gap: 10px; min-height: 0; }
-        .sidebar { width: 380px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; padding-right: 2px; position: relative; z-index: 2; }
+        .sidebar { width: 380px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; padding-right: 2px; position: relative; z-index: 5; }
         .sidebar::-webkit-scrollbar { width: 5px; }
         .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
         .card { background: var(--card); border-radius: 12px; padding: 15px; border: 1px solid var(--border); backdrop-filter: blur(8px); }
@@ -255,7 +256,7 @@ HTML_TEMPLATE = '''
         input, select { width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: rgba(15, 23, 42, 0.8); color: var(--text); font-family: 'Cairo'; font-size: 0.9em; }
         .btn { width: 100%; padding: 10px; border-radius: 8px; border: none; font-family: 'Cairo'; font-size: 0.95em; font-weight: 700; cursor: pointer; transition: all 0.2s; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; }
         .btn:hover { opacity: 0.9; transform: translateY(-1px); }
-        .map-container { flex: 1; background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; position: relative; backdrop-filter: blur(8px); z-index: 2; }
+        .map-container { flex: 1; background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; position: relative; backdrop-filter: blur(8px); z-index: 4; }
         #map { height: 100%; width: 100%; }
         .map-legend { position: absolute; bottom: 20px; left: 20px; background: rgba(15, 23, 42, 0.9); padding: 12px; border-radius: 8px; border: 1px solid var(--border); z-index: 1000; font-size: 0.8em; backdrop-filter: blur(5px); }
         .legend-item { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
@@ -273,6 +274,7 @@ HTML_TEMPLATE = '''
     </style>
 </head>
 <body>
+<div class="watermark-overlay"></div>
 <div class="container">
     <div class="header">
         <h1>📊 نظام تتبع وتحليل قطاعات الإشارة - منظومة البيان</h1>
