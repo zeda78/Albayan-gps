@@ -5,7 +5,7 @@ import os
 app = Flask(__name__)
 
 # ═══════════════════════════════════════════════════════════════
-# خوارزميات التثليث الراديوي والحسابات الجغرافية الأصلية
+# خوارزميات التثليث الراديوي والحسابات الجغرافية
 # ═══════════════════════════════════════════════════════════════
 class TowerGenerator:
     @staticmethod
@@ -54,7 +54,7 @@ class CellIDAnalyzer:
 
     @staticmethod
     def parse_cell_id(cell_input):
-        cell_input = cell_input.strip()
+        cell_input = str(cell_input).strip()
         result = {
             'raw': cell_input, 'mcc': 606, 'mnc': 1, 'lac': 0, 'cid': 0,
             'provider': 'Al-Madar', 'angle_info': None, 'format': 'غير معروف'
@@ -216,10 +216,6 @@ HTML_TEMPLATE = '''
         }
         
         .header-title-container { display: flex; align-items: center; gap: 12px; }
-        .header-logo {
-            width: 45px; height: 45px; object-fit: contain;
-            border-radius: 50%; background: #fff; padding: 2px;
-        }
 
         .container { max-width: 100%; height: 100vh; display: flex; flex-direction: column; padding: 10px; gap: 10px; position: relative; z-index: 2; }
         .header { background: var(--card); padding: 10px 20px; border-radius: 12px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; backdrop-filter: blur(8px); }
@@ -243,7 +239,6 @@ HTML_TEMPLATE = '''
             background: rgba(15, 23, 42, 0.9); padding: 8px 14px; border-radius: 8px;
             border: 1px solid var(--border); display: flex; align-items: center; gap: 10px;
         }
-        .map-watermark img { width: 32px; height: 32px; object-fit: contain; border-radius: 50%; background: #fff; }
         .map-watermark span { font-size: 0.85em; font-weight: 700; color: #f1f5f9; }
 
         .map-legend { position: absolute; bottom: 20px; left: 20px; background: rgba(15, 23, 42, 0.9); padding: 12px; border-radius: 8px; border: 1px solid var(--border); z-index: 1000; font-size: 0.8em; }
@@ -265,7 +260,6 @@ HTML_TEMPLATE = '''
 <div class="container">
     <div class="header">
         <div class="header-title-container">
-            <img class="header-logo" src="https://raw.githubusercontent.com/zeda78/Albayan-gps/main/منظومة-البيان.jpg" onerror="this.src='https://raw.githubusercontent.com/zeda78/Albayan-gps/main/logo.png'" alt="شعار البيان">
             <h1>نظام تتبع وتحليل قطاعات الإشارة - منظومة البيان</h1>
         </div>
         <div style="font-size: 0.85em; color: var(--text-muted); font-weight: 700;">مديرية أمن طرابلس</div>
@@ -349,7 +343,6 @@ HTML_TEMPLATE = '''
             <div id="map"></div>
             
             <div class="map-watermark">
-                <img src="https://raw.githubusercontent.com/zeda78/Albayan-gps/main/منظومة-البيان.jpg" onerror="this.src='https://raw.githubusercontent.com/zeda78/Albayan-gps/main/logo.png'" alt="أمن طرابلس">
                 <span>غرفة العمليات والتحليل الرقمي</span>
             </div>
 
@@ -368,14 +361,17 @@ HTML_TEMPLATE = '''
 let map, markers = [], layers = [];
 
 function initMap() {
-    map = L.map('map', { center: [32.8538, 13.2415], zoom: 12, attributionControl: false });
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(map);
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(map);
+    try {
+        map = L.map('map', { center: [32.8538, 13.2415], zoom: 12, attributionControl: false });
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{y}/{x}.png', { maxZoom: 19 }).addTo(map);
+    } catch(e) {
+        console.error("Leaflet initialization failed:", e);
+    }
 }
 
 function cleanCanvas() {
-    markers.forEach(m => { if(map.hasLayer(m)) map.removeLayer(m); });
-    layers.forEach(l => { if(map.hasLayer(l)) map.removeLayer(l); });
+    markers.forEach(m => { if(map && map.hasLayer(m)) map.removeLayer(m); });
+    layers.forEach(l => { if(map && map.hasLayer(l)) map.removeLayer(l); });
     markers = []; layers = [];
 }
 
@@ -390,7 +386,7 @@ function drawVisualSector(lat, lon, angle, radius) {
 
         let focusCircle = L.circle([endLat, endLon], {
             radius: 20, color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.4, weight: 2
-        }).addTo(map).bindPopup('<b>بؤرة الفحص الميداني المقدرة (القطر: 40 متر)</b>');
+        }).addTo(map);
         layers.push(focusCircle);
 
         let points = [[lat, lon]];
@@ -422,26 +418,28 @@ function executeAnalysis() {
         environment: document.getElementById('environment').value
     };
 
-    // تم تعديل الرابط هنا ليرسل للمسار الموحد المضمون
     fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
     })
-    .then(res => res.json())
+    .then(res => {
+        if(!res.ok) throw new Error("HTTP error " + res.status);
+        return res.json();
+    })
     .then(data => {
         document.getElementById('loader').classList.remove('active');
-        if(data.status === 'success' && data.result) {
+        if(data && data.status === 'success' && data.result) {
             renderInterfaceData(data.result);
             plotGeographicalData(data.result);
         } else {
-            alert("حدث خطأ في استجابة الخادم الداخلي.");
+            alert("حدث خطأ في معالجة خوارزمية التثليث الراديوي داخل السيرفر.");
         }
     })
     .catch(err => {
         document.getElementById('loader').classList.remove('active');
         console.error("Fetch Error:", err);
-        alert("فشل الاتصال بالسيرفر. جاري إعادة المحاولة الفورية...");
+        alert("فشل جلب الاستجابة. تأكد من إعدادات الاستضافة.");
     });
 }
 
@@ -458,15 +456,14 @@ function renderInterfaceData(result) {
         let estDistance = result.towers?.main?.estimated_distance ?? 0;
         let confidence = result.confidence ?? 50;
 
-        let cellHtml = `
+        document.getElementById('cellDetails').innerHTML = `
             <div class="mini-row"><span class="mini-label">المشغل المحلي</span><span class="mini-value" style="color:#60a5fa">${provider}</span></div>
             <div class="mini-row"><span class="mini-label">الرمز الدولي (MCC-MNC)</span><span class="mini-value">${mcc} - ${mnc}</span></div>
             <div class="mini-row"><span class="mini-label">موقع الرمز (LAC-CID)</span><span class="mini-value">${lac} - ${cid}</span></div>
             <div class="mini-row"><span class="mini-label">الزاوية المستخرجة</span><span class="mini-value">${extAngle}°</span></div>
         `;
-        document.getElementById('cellDetails').innerHTML = cellHtml;
 
-        let distanceHtml = `
+        document.getElementById('distanceDetails').innerHTML = `
             <div class="mini-row"><span class="mini-label">مسافة البحث الافتراضية</span><span class="mini-value">${estDistance.toFixed(1)} م</span></div>
             <div class="mini-row"><span class="mini-label">بؤرة المعاينة الميدانية</span><span class="mini-value" style="color:#ef4444">دائرة قطرها 40 متر ثابتة</span></div>
             <div class="confidence-container">
@@ -474,17 +471,14 @@ function renderInterfaceData(result) {
                 <div class="confidence-bar"><div class="confidence-fill" style="width:${confidence}%; background:#10b981"></div></div>
             </div>
         `;
-        document.getElementById('distanceDetails').innerHTML = distanceHtml;
-    } catch(e) {
-        console.error("Error rendering details UI:", e);
-    }
+    } catch(e) { console.error("Error rendering details UI:", e); }
 }
 
 function plotGeographicalData(res) {
     try {
         cleanCanvas();
         let main = res.towers?.main;
-        if (!main) return;
+        if (!main || !map) return;
         
         drawVisualSector(main.lat, main.lon, main.final_angle, main.estimated_distance);
 
@@ -506,7 +500,7 @@ function plotGeographicalData(res) {
         if(final) {
             let phoneMarker = L.marker([final.lat, final.lon], {
                 icon: L.divIcon({ html: `<div style="background:#ec4899; width:18px; height:18px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 12px #ec4899;"></div>`, className: '' })
-            }).addTo(map).bindPopup('<b>الموقع النهائي بعد التثليث الموزون</b>');
+            }).addTo(map);
             markers.push(phoneMarker);
         }
 
@@ -514,9 +508,7 @@ function plotGeographicalData(res) {
             let group = new L.featureGroup(markers);
             map.fitBounds(group.getBounds().pad(0.3));
         }
-    } catch(e) {
-        console.error("Error plotting map markers:", e);
-    }
+    } catch(e) { console.error("Error plotting map markers:", e); }
 }
 
 window.onload = initMap;
@@ -529,13 +521,11 @@ window.onload = initMap;
 def home():
     return render_template_string(HTML_TEMPLATE)
 
-# تفعيل المسارين معاً لضمان عدم حدوث خطأ 404 مهما كانت النسخة المستدعاة
 @app.route('/api/analyze', methods=['POST'])
-@app.route('/calculate', methods=['POST'])
 def api_analyze():
     try:
         data = request.get_json() or {}
-        cell_id_raw = data.get('cell_id', '') or data.get('cell_id_raw', '')
+        cell_id_raw = str(data.get('cell_id', '')).strip()
         main_lat = float(data.get('lat', 32.853826))
         main_lon = float(data.get('lon', 13.241509))
         user_direction = data.get('direction', 'auto')
