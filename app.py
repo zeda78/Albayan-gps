@@ -630,7 +630,7 @@ input:focus, select:focus {
 <div class="container">
     <div class="header">
         <h1>🇱🇾 نظام تحديد المواقع الخاص بوحدة البيان</h1>
-        <p>خريطة قمر صناعي مدمجة - توليد 3 أبراج افتراضية - تثليث دقيق</p>
+        <p>خريطة قمر صناعي مدمجة </p>
     </div>
 
     <div class="grid">
@@ -724,7 +724,7 @@ input:focus, select:focus {
                 </div>
 
                 <div class="card">
-                    <div class="card-title">🎯 نتيجة التثليث</div>
+                    <div class="card-title">🎯 نتيجة النهائية</div>
                     <div id="triResult"></div>
                 </div>
 
