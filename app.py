@@ -5,7 +5,7 @@ import os
 app = Flask(__name__)
 
 # ═══════════════════════════════════════════════════════════════
-# خوارزميات التثليث الراديوي والحسابات الجغرافية
+# خوارزميات التثليث الراديوي والحسابات الجغرافية والكبح البري
 # ═══════════════════════════════════════════════════════════════
 class TowerGenerator:
     @staticmethod
@@ -16,6 +16,10 @@ class TowerGenerator:
             dist_factor = 1.0 + (0.15 * (1 - i))
             tower_dist = main_distance * dist_factor
             tower_lat, tower_lon = move(main_lat, main_lon, angle, tower_dist)
+            
+            # كبح الأبراج الافتراضية أيضاً لضمان عدم خروجها للبحر
+            tower_lat, tower_lon = GeoConstraint.clamp_to_land(tower_lat, tower_lon)
+            
             real_dist = haversine(main_lat, main_lon, tower_lat, tower_lon)
             est_signal = -85 - (abs(i - 1) * 7)
             towers.append({
@@ -30,6 +34,19 @@ class TowerGenerator:
                 'label': f'برج افتراضي {i+1}'
             })
         return towers
+
+class GeoConstraint:
+    """منظومة ذكية لمنع نقاط التتبع من السباحة في البحر وكبحها على اليابسة"""
+    @staticmethod
+    def clamp_to_land(lat, lon):
+        # النطاق الجغرافي التقريبي لساحل طرابلس (Hai Al-Andalus والمنطقة المحيطة)
+        # إذا تجاوز خط العرض حد الأمان شمالاً (في البحر)، يتم إرجاعه فوراً إلى الحد البري المستقر
+        MAX_SAFE_LAT = 32.905000  # حافة خط الساحل المعتمدة بالمنظومة
+        
+        if lat > MAX_SAFE_LAT:
+            # تم رصد خروج للنقطة في البحر -> يتم كبحها تلقائياً على حافة الأرض المأهولة
+            return MAX_SAFE_LAT, lon
+        return lat, lon
 
 class CellIDAnalyzer:
     SECTOR_PATTERNS = {
@@ -258,8 +275,8 @@ HTML_TEMPLATE = '''
 <div class="container">
     <div class="header">
         <h1>مديرية أمن طرابلس - وحدة التقصي والبيان - منظومة التتبع واستخراج البيانات</h1>
-        <div style="font-size: 0.85em; color: #60a5fa; font-weight: 700; display: flex; align-items: center; gap: 5px;">
-            <span>● الاتصال آمن</span>
+        <div style="font-size: 0.85em; color: #10b981; font-weight: 700; display: flex; align-items: center; gap: 5px;">
+            <span>● كبح الحدود البرية نشط</span>
         </div>
     </div>
     <div class="grid">
@@ -324,7 +341,7 @@ HTML_TEMPLATE = '''
                 <button class="btn" onclick="executeAnalysis()">🎯 إسقاط وبدء الحساب الجغرافي</button>
             </div>
 
-            <div class="loading" id="loader">⏳ جاري موازنة مصفوفة التثليث الراديوي...</div>
+            <div class="loading" id="loader">⏳ جاري معالجة مصفوفة التثليث الراديوي ومنع الانحراف المائي...</div>
 
             <div class="result-section" id="resultsBox">
                 <div class="card">
@@ -348,7 +365,7 @@ HTML_TEMPLATE = '''
                 <div style="font-weight: bold; margin-bottom: 5px; color:#60a5fa;">مفتاح الرموز الجغرافية</div>
                 <div class="legend-item"><div class="legend-icon" style="background:#f97316;"></div><span>البرج المستهدف الأساسي</span></div>
                 <div class="legend-item"><div class="legend-icon" style="background:#8b5cf6;"></div><span>نقاط التثليث الافتراضية</span></div>
-                <div class="legend-item"><div class="legend-icon" style="background:#ef4444;"></div><span>دائرة التمركز بقطر 40 متر</span></div>
+                <div class="legend-item"><div class="legend-icon" style="background:#ef4444;"></div><span>دائرة التمركز المكبوبة بريّاً</span></div>
                 <div class="legend-item"><div class="legend-icon" style="background:#ec4899;"></div><span>المنطقة المحتملة لتواجد الهدف</span></div>
             </div>
         </div>
@@ -379,6 +396,9 @@ function drawVisualSector(lat, lon, angle, radius) {
         let endLat = lat + (radius / 111320) * Math.cos(angleRad);
         let endLon = lon + (radius / (111320 * Math.cos((lat * Math.PI) / 180))) * Math.sin(angleRad);
         
+        // كبح نقطة السيكتور البصرية على خط الساحل إذا طفت في البحر
+        if(endLat > 32.905000) { endLat = 32.905000; }
+
         let centerLine = L.polyline([[lat, lon], [endLat, endLon]], { color: '#fbbf24', weight: 4, opacity: 0.95 }).addTo(map);
         layers.push(centerLine);
 
@@ -394,6 +414,7 @@ function drawVisualSector(lat, lon, angle, radius) {
             let r = (i * Math.PI) / 180;
             let pLat = lat + (radius / 111320) * Math.cos(r);
             let pLon = lon + (radius / (111320 * Math.cos((lat * Math.PI) / 180))) * Math.sin(r);
+            if(pLat > 32.905000) { pLat = 32.905000; }
             points.push([pLat, pLon]);
         }
         points.push([lat, lon]);
@@ -463,7 +484,7 @@ function renderInterfaceData(result) {
 
         document.getElementById('distanceDetails').innerHTML = `
             <div class="mini-row"><span class="mini-label">مسافة البحث الافتراضية</span><span class="mini-value">${estDistance.toFixed(1)} م</span></div>
-            <div class="mini-row"><span class="mini-label">بؤرة المعاينة الميدانية</span><span class="mini-value" style="color:#ef4444">دائرة قطرها 40 متر ثابتة</span></div>
+            <div class="mini-row"><span class="mini-label">حالة الحدود الجغرافية</span><span class="mini-value" style="color:#10b981">مكبوحة بريّاً لمنع انحراف البحر</span></div>
             <div class="confidence-container">
                 <div class="mini-row"><span class="mini-label">درجة الدقة والموثوقية الجغرافية</span><span class="mini-value" style="color:#10b981">${confidence}%</span></div>
                 <div class="confidence-bar"><div class="confidence-fill" style="width:${confidence}%; background:#10b981"></div></div>
@@ -551,6 +572,13 @@ def api_analyze():
             })
         
         final_coords = weighted_centroid_trilateration(towers_for_tri)
+        
+        # كبح الإحداثيات النهائية للمستهدف لمنعها من الخروج في مياه البحر تماماً
+        final_lat_clamped, final_lon_clamped = GeoConstraint.clamp_to_land(
+            final_coords['lat'] if final_coords else main_lat,
+            final_coords['lon'] if final_coords else main_lon
+        )
+
         confidence = calculate_confidence(len(virtual_towers), rssi, env, refinement_status)
 
         response_payload = {
@@ -567,9 +595,9 @@ def api_analyze():
                     'virtual': virtual_towers
                 },
                 'final_result': {
-                    'lat': round(final_coords['lat'], 6) if final_coords else main_lat,
-                    'lon': round(final_coords['lon'], 6) if final_coords else main_lon,
-                    'distance_from_main': round(haversine(main_lat, main_lon, final_coords['lat'], final_coords['lon']), 1) if final_coords else 0
+                    'lat': round(final_lat_clamped, 6),
+                    'lon': round(final_lon_clamped, 6),
+                    'distance_from_main': round(haversine(main_lat, main_lon, final_lat_clamped, final_lon_clamped), 1)
                 }
             }
         }
