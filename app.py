@@ -4,9 +4,9 @@ import os
 
 app = Flask(__name__)
 
-# ===============================================================================
+# ═══════════════════════════════════════════════════════════════
 # خوارزميات التثليث الراديوي والحسابات الجغرافية والكبح البري
-# ===============================================================================
+# ═══════════════════════════════════════════════════════════════
 class TowerGenerator:
     @staticmethod
     def generate_virtual_towers(main_lat, main_lon, main_distance, final_angle):
@@ -39,11 +39,8 @@ class GeoConstraint:
     """منظومة ذكية لمنع نقاط التتبع من السباحة في البحر وكبحها على اليابسة"""
     @staticmethod
     def clamp_to_land(lat, lon):
-        # النطاق الجغرافي التقريبي لساحل طرابلس (Hai Al-Andalus والمنطقة المحيطة)
         MAX_SAFE_LAT = 32.905000  # حافة خط الساحل المعتمدة بالمنظومة
-        
         if lat > MAX_SAFE_LAT:
-            # تم رصد خروج للنقطة في البحر -> يتم كبحها تلقائياً على حافة الأرض المأهولة
             return MAX_SAFE_LAT, lon
         return lat, lon
 
@@ -200,9 +197,9 @@ def calculate_confidence(towers_used, signal_quality, environment, angle_quality
     else: score += 5
     return min(score, 100)
 
-# ===============================================================================
-# واجهة العرض (HTML/JS) المدمجة
-# ===============================================================================
+# ═══════════════════════════════════════════════════════════════
+# واجهة العرض - خرائط الأقمار الصناعية ودائرة التمركز الدقيقة
+# ═══════════════════════════════════════════════════════════════
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -219,7 +216,7 @@ HTML_TEMPLATE = '''
             --primary: #2563eb; --primary-dark: #1d4ed8; --success: #10b981;
             --warning: #f59e0b; --danger: #ef4444; --info: #06b6d4;
             --virtual: #8b5cf6; --main: #f97316; --phone: #ec4899;
-            --bg: #0f172a; --card: rgba(30, 41, 59, 0.88); --border: #334155;
+            --bg: #0f172a; --card: rgba(30, 41, 59, 0.92); --border: #334155;
             --text: #f1f5f9; --text-muted: #94a3b8;
         }
         body { 
@@ -340,7 +337,7 @@ HTML_TEMPLATE = '''
                 <button class="btn" onclick="executeAnalysis()">🎯 إسقاط وبدء الحساب الجغرافي</button>
             </div>
 
-            <div class="loading" id="loader">⏳ جاري معالجة مصفوفة التثليث الراديوي ومنع الانحراف المائي...</div>
+            <div class="loading" id="loader">⏳ جاري معالجة مصفوفة التثليث وتحديد النطاق...</div>
 
             <div class="result-section" id="resultsBox">
                 <div class="card">
@@ -348,7 +345,7 @@ HTML_TEMPLATE = '''
                     <div id="cellDetails"></div>
                 </div>
                 <div class="card">
-                    <div class="card-title">🎯 تقدير المسافة الجغرافية والموثوقية</div>
+                    <div class="card-title">🎯 تقدير النطاق الجغرافي والموثوقية</div>
                     <div id="distanceDetails"></div>
                 </div>
             </div>
@@ -364,8 +361,8 @@ HTML_TEMPLATE = '''
                 <div style="font-weight: bold; margin-bottom: 5px; color:#60a5fa;">مفتاح الرموز الجغرافية</div>
                 <div class="legend-item"><div class="legend-icon" style="background:#f97316;"></div><span>البرج المستهدف الأساسي</span></div>
                 <div class="legend-item"><div class="legend-icon" style="background:#8b5cf6;"></div><span>نقاط التثليث الافتراضية</span></div>
-                <div class="legend-item"><div class="legend-icon" style="background:#ef4444;"></div><span>دائرة التمركز المكبوبة بريّاً</span></div>
-                <div class="legend-item"><div class="legend-icon" style="background:#ec4899;"></div><span>المنطقة المحتملة لتواجد الهدف</span></div>
+                <div class="legend-item"><div class="legend-icon" style="background:#ef4444;"></div><span>قطاع التغطية للإشارة</span></div>
+                <div class="legend-item"><div class="legend-icon" style="background:#ec4899;"></div><span>نطاق التفتيش الدقيق (الهدف)</span></div>
             </div>
         </div>
     </div>
@@ -376,19 +373,13 @@ let map, markers = [], layers = [];
 
 function initMap() {
     try {
-        // تم تغيير نسبة التقريب من 12 إلى 14 ليكون العرض أوضح مباشرة
         map = L.map('map', { center: [32.8538, 13.2415], zoom: 14, attributionControl: false });
         
-        // 1. إضافة طبقة القمر الصناعي عالية الدقة من Esri
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { 
-            maxZoom: 19 
-        }).addTo(map);
-
-        // 2. إضافة طبقة هجينة لتوضيح أسماء الشوارع والحدود (Hybrid Overlay)
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+        // خريطة الأقمار الصناعية (Esri World Imagery)
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
             maxZoom: 19
         }).addTo(map);
-
+        
     } catch(e) {
         console.error("Leaflet initialization failed:", e);
     }
@@ -406,7 +397,6 @@ function drawVisualSector(lat, lon, angle, radius) {
         let endLat = lat + (radius / 111320) * Math.cos(angleRad);
         let endLon = lon + (radius / (111320 * Math.cos((lat * Math.PI) / 180))) * Math.sin(angleRad);
         
-        // كبح نقطة السيكتور البصرية على خط الساحل إذا طفت في البحر
         if(endLat > 32.905000) { endLat = 32.905000; }
 
         let centerLine = L.polyline([[lat, lon], [endLat, endLon]], { color: '#fbbf24', weight: 4, opacity: 0.95 }).addTo(map);
@@ -468,7 +458,7 @@ function executeAnalysis() {
     .catch(err => {
         document.getElementById('loader').classList.remove('active');
         console.error("Fetch Error:", err);
-        alert("فشل الاتصال بالخادم الخلفي. تأكد من أن السيرفر قيد التشغيل.");
+        alert("فشل الاتصال بالسيرفر الخلفي.");
     });
 }
 
@@ -483,6 +473,7 @@ function renderInterfaceData(result) {
         let cid = result.cell_info?.cid || 0;
         let extAngle = result.towers?.main?.extracted_angle ?? 0;
         let estDistance = result.towers?.main?.estimated_distance ?? 0;
+        let searchRadius = result.final_result?.search_radius ?? 50;
         let confidence = result.confidence ?? 50;
 
         document.getElementById('cellDetails').innerHTML = `
@@ -493,8 +484,8 @@ function renderInterfaceData(result) {
         `;
 
         document.getElementById('distanceDetails').innerHTML = `
-            <div class="mini-row"><span class="mini-label">مسافة البحث الافتراضية</span><span class="mini-value">${estDistance.toFixed(1)} م</span></div>
-            <div class="mini-row"><span class="mini-label">حالة الحدود الجغرافية</span><span class="mini-value" style="color:#10b981">مكبوحة بريّاً لمنع انحراف البحر</span></div>
+            <div class="mini-row"><span class="mini-label">نطاق التفتيش الفعلي</span><span class="mini-value" style="color:#ec4899">${searchRadius} م</span></div>
+            <div class="mini-row"><span class="mini-label">حالة الحدود الجغرافية</span><span class="mini-value" style="color:#10b981">مكبوحة بريّاً</span></div>
             <div class="confidence-container">
                 <div class="mini-row"><span class="mini-label">درجة الدقة والموثوقية الجغرافية</span><span class="mini-value" style="color:#10b981">${confidence}%</span></div>
                 <div class="confidence-bar"><div class="confidence-fill" style="width:${confidence}%; background:#10b981"></div></div>
@@ -527,13 +518,25 @@ function plotGeographicalData(res) {
 
         let final = res.final_result;
         if(final) {
+            // رسم دائرة التمركز والبحث الضيق (50 متر أو أكثر حسب الدقة)
+            let searchZone = L.circle([final.lat, final.lon], {
+                radius: final.search_radius,
+                color: '#ec4899',
+                fillColor: '#ec4899',
+                fillOpacity: 0.3,
+                weight: 2,
+                dashArray: '5,5'
+            }).addTo(map);
+            layers.push(searchZone);
+
             let phoneMarker = L.marker([final.lat, final.lon], {
                 icon: L.divIcon({ html: `<div style="background:#ec4899; width:18px; height:18px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 12px #ec4899;"></div>`, className: '' })
             }).addTo(map);
             markers.push(phoneMarker);
-        }
-
-        if(markers.length > 0) {
+            
+            // عمل تقريب (Zoom) مباشر على دائرة البحث الضيقة
+            map.fitBounds(searchZone.getBounds().pad(0.5));
+        } else if(markers.length > 0) {
             let group = new L.featureGroup(markers);
             map.fitBounds(group.getBounds().pad(0.3));
         }
@@ -573,23 +576,29 @@ def api_analyze():
             final_angle, refinement_status = CellIDAnalyzer.refine_angle(user_direction, cell_analysis['angle_info'])
 
         est_distance = smart_distance_estimate(rssi, freq_mhz=freq, environment=env)
-        virtual_towers = TowerGenerator.generate_virtual_towers(main_lat, main_lon, est_distance, final_angle)
+        
+        # تحجيم المسافة بنسبة 40% لمنع تشتت النقاط الافتراضية
+        compressed_distance = est_distance * 0.40 
+        
+        virtual_towers = TowerGenerator.generate_virtual_towers(main_lat, main_lon, compressed_distance, final_angle)
 
-        towers_for_tri = [{'lat': main_lat, 'lon': main_lon, 'distance': est_distance, 'weight': 1.0}]
+        towers_for_tri = [{'lat': main_lat, 'lon': main_lon, 'distance': compressed_distance, 'weight': 1.5}]
         for vt in virtual_towers:
             towers_for_tri.append({
-                'lat': vt['lat'], 'lon': vt['lon'], 'distance': vt['distance_from_main'] * 0.5, 'weight': vt['weight']
+                'lat': vt['lat'], 'lon': vt['lon'], 'distance': vt['distance_from_main'], 'weight': vt['weight']
             })
         
         final_coords = weighted_centroid_trilateration(towers_for_tri)
         
-        # كبح الإحداثيات النهائية للمستهدف لمنعها من الخروج في مياه البحر تماماً
         final_lat_clamped, final_lon_clamped = GeoConstraint.clamp_to_land(
             final_coords['lat'] if final_coords else main_lat,
             final_coords['lon'] if final_coords else main_lon
         )
 
         confidence = calculate_confidence(len(virtual_towers), rssi, env, refinement_status)
+
+        # حساب نصف قطر البحث (لا يقل أبداً عن 50 متر)
+        dynamic_search_radius = max(50, 150 - confidence)
 
         response_payload = {
             'status': 'success',
@@ -607,6 +616,7 @@ def api_analyze():
                 'final_result': {
                     'lat': round(final_lat_clamped, 6),
                     'lon': round(final_lon_clamped, 6),
+                    'search_radius': dynamic_search_radius,
                     'distance_from_main': round(haversine(main_lat, main_lon, final_lat_clamped, final_lon_clamped), 1)
                 }
             }
