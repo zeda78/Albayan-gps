@@ -311,9 +311,9 @@ HTML_TEMPLATE = '''
                     <div>
                         <label>مستوى خسارة الإشارة</label>
                         <select id="signal">
-                            <option value="-45">قوية (-45 dBm)</option>
-                            <option value="-65" selected>متوسطة (-65 dBm)</option>
-                            <option value="-85">ضعيفة (-85 dBm)</option>
+                            <option value="-60">قوية (-60 dBm)</option>
+                            <option value="-78" selected>متوسطة (-78 dBm)</option>
+                            <option value="-90">ضعيفة (-90 dBm)</option>
                             <option value="-110">ميتة (-110 dBm)</option>
                         </select>
                     </div>
