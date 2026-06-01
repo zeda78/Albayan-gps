@@ -4,9 +4,9 @@ import os
 
 app = Flask(__name__)
 
-# ═══════════════════════════════════════════════════════════════
+# ===============================================================================
 # خوارزميات التثليث الراديوي والحسابات الجغرافية والكبح البري
-# ═══════════════════════════════════════════════════════════════
+# ===============================================================================
 class TowerGenerator:
     @staticmethod
     def generate_virtual_towers(main_lat, main_lon, main_distance, final_angle):
@@ -40,7 +40,6 @@ class GeoConstraint:
     @staticmethod
     def clamp_to_land(lat, lon):
         # النطاق الجغرافي التقريبي لساحل طرابلس (Hai Al-Andalus والمنطقة المحيطة)
-        # إذا تجاوز خط العرض حد الأمان شمالاً (في البحر)، يتم إرجاعه فوراً إلى الحد البري المستقر
         MAX_SAFE_LAT = 32.905000  # حافة خط الساحل المعتمدة بالمنظومة
         
         if lat > MAX_SAFE_LAT:
@@ -201,9 +200,9 @@ def calculate_confidence(towers_used, signal_quality, environment, angle_quality
     else: score += 5
     return min(score, 100)
 
-# ═══════════════════════════════════════════════════════════════
-# واجهة العرض الهيكلية المحسنة والمطابقة للهوية الرسمية
-# ═══════════════════════════════════════════════════════════════
+# ===============================================================================
+# واجهة العرض (HTML/JS) المدمجة
+# ===============================================================================
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -274,7 +273,7 @@ HTML_TEMPLATE = '''
 <body>
 <div class="container">
     <div class="header">
-        <h1>مديرية أمن طرابلس - وحدة التقصي والبيان - منظومة التتبع واستخراج البيانات</h1>
+        <h1>مديرية أمن طرابلس - وحدة التقصي والبيان - منظومة التتبع</h1>
         <div style="font-size: 0.85em; color: #10b981; font-weight: 700; display: flex; align-items: center; gap: 5px;">
             <span>● كبح الحدود البرية نشط</span>
         </div>
@@ -377,8 +376,19 @@ let map, markers = [], layers = [];
 
 function initMap() {
     try {
-        map = L.map('map', { center: [32.8538, 13.2415], zoom: 12, attributionControl: false });
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{y}/{x}.png', { maxZoom: 19 }).addTo(map);
+        // تم تغيير نسبة التقريب من 12 إلى 14 ليكون العرض أوضح مباشرة
+        map = L.map('map', { center: [32.8538, 13.2415], zoom: 14, attributionControl: false });
+        
+        // 1. إضافة طبقة القمر الصناعي عالية الدقة من Esri
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { 
+            maxZoom: 19 
+        }).addTo(map);
+
+        // 2. إضافة طبقة هجينة لتوضيح أسماء الشوارع والحدود (Hybrid Overlay)
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19
+        }).addTo(map);
+
     } catch(e) {
         console.error("Leaflet initialization failed:", e);
     }
@@ -458,7 +468,7 @@ function executeAnalysis() {
     .catch(err => {
         document.getElementById('loader').classList.remove('active');
         console.error("Fetch Error:", err);
-        alert("فشل جلب الاستجابة. تأكد من إعدادات الاستضافة.");
+        alert("فشل الاتصال بالخادم الخلفي. تأكد من أن السيرفر قيد التشغيل.");
     });
 }
 
@@ -607,4 +617,4 @@ def api_analyze():
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=port, debug=True)
