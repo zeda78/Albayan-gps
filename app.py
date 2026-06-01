@@ -198,7 +198,7 @@ def calculate_confidence(towers_used, signal_quality, environment, angle_quality
     return min(score, 100)
 
 # ═══════════════════════════════════════════════════════════════
-# واجهة العرض - خرائط الأقمار الصناعية ودائرة التمركز الدقيقة
+# واجهة العرض - مدمج بها خرائط Google Maps القمر الصناعي الهجين
 # ═══════════════════════════════════════════════════════════════
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
@@ -272,7 +272,7 @@ HTML_TEMPLATE = '''
     <div class="header">
         <h1>مديرية أمن طرابلس - وحدة التقصي والبيان - منظومة التتبع</h1>
         <div style="font-size: 0.85em; color: #10b981; font-weight: 700; display: flex; align-items: center; gap: 5px;">
-            <span>● كبح الحدود البرية نشط</span>
+            <span>● محرك الخرائط: Google Maps</span>
         </div>
     </div>
     <div class="grid">
@@ -313,7 +313,7 @@ HTML_TEMPLATE = '''
                         <select id="signal">
                             <option value="-60">قوية (-60 dBm)</option>
                             <option value="-78" selected>متوسطة (-78 dBm)</option>
-                            <option value="-90">ضعيفة (-90 dBm)</option>
+                            <option value="-95">ضعيفة (-95 dBm)</option>
                             <option value="-110">ميتة (-110 dBm)</option>
                         </select>
                     </div>
@@ -362,7 +362,7 @@ HTML_TEMPLATE = '''
                 <div class="legend-item"><div class="legend-icon" style="background:#f97316;"></div><span>البرج المستهدف الأساسي</span></div>
                 <div class="legend-item"><div class="legend-icon" style="background:#8b5cf6;"></div><span>نقاط التثليث الافتراضية</span></div>
                 <div class="legend-item"><div class="legend-icon" style="background:#ef4444;"></div><span>قطاع التغطية للإشارة</span></div>
-                <div class="legend-item"><div class="legend-icon" style="background:#ec4899;"></div><span>نطاق التفتيش الدقيق (الهدف)</span></div>
+                <div class="legend-item"><div class="legend-icon" style="background:#ec4899;"></div><span>نطاق التفتيش الدقيق (50م)</span></div>
             </div>
         </div>
     </div>
@@ -375,13 +375,14 @@ function initMap() {
     try {
         map = L.map('map', { center: [32.8538, 13.2415], zoom: 14, attributionControl: false });
         
-        // خريطة الأقمار الصناعية (Esri World Imagery)
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            maxZoom: 19
+        // ربط محرك الخرائط بـ Google Maps الفضائي الهجين (الصور الفضائية + أسماء الشوارع)
+        L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+            maxZoom: 20,
+            attribution: 'Google Maps'
         }).addTo(map);
         
     } catch(e) {
-        console.error("Leaflet initialization failed:", e);
+        console.error("Google Maps integration failed:", e);
     }
 }
 
@@ -472,7 +473,6 @@ function renderInterfaceData(result) {
         let lac = result.cell_info?.lac || 0;
         let cid = result.cell_info?.cid || 0;
         let extAngle = result.towers?.main?.extracted_angle ?? 0;
-        let estDistance = result.towers?.main?.estimated_distance ?? 0;
         let searchRadius = result.final_result?.search_radius ?? 50;
         let confidence = result.confidence ?? 50;
 
@@ -484,7 +484,7 @@ function renderInterfaceData(result) {
         `;
 
         document.getElementById('distanceDetails').innerHTML = `
-            <div class="mini-row"><span class="mini-label">نطاق التفتيش الفعلي</span><span class="mini-value" style="color:#ec4899">${searchRadius} م</span></div>
+            <div class="mini-row"><span class="mini-label">نطاق التفتيش الدقيق</span><span class="mini-value" style="color:#ec4899">${searchRadius} م</span></div>
             <div class="mini-row"><span class="mini-label">حالة الحدود الجغرافية</span><span class="mini-value" style="color:#10b981">مكبوحة بريّاً</span></div>
             <div class="confidence-container">
                 <div class="mini-row"><span class="mini-label">درجة الدقة والموثوقية الجغرافية</span><span class="mini-value" style="color:#10b981">${confidence}%</span></div>
@@ -518,7 +518,7 @@ function plotGeographicalData(res) {
 
         let final = res.final_result;
         if(final) {
-            // رسم دائرة التمركز والبحث الضيق (30 متر أو أكثر حسب الدقة)
+            // رسم دائرة التمركز والبحث الضيق (50 متر أو أكثر حسب الدقة)
             let searchZone = L.circle([final.lat, final.lon], {
                 radius: final.search_radius,
                 color: '#ec4899',
@@ -534,8 +534,8 @@ function plotGeographicalData(res) {
             }).addTo(map);
             markers.push(phoneMarker);
             
-            // عمل تقريب (Zoom) مباشر على دائرة البحث الضيقة
-            map.fitBounds(searchZone.getBounds().pad(0.3));
+            // عمل تقريب فوري ومباشر على نطاق الـ 50 متر الفعلي
+            map.fitBounds(searchZone.getBounds().pad(0.5));
         } else if(markers.length > 0) {
             let group = new L.featureGroup(markers);
             map.fitBounds(group.getBounds().pad(0.3));
@@ -577,8 +577,8 @@ def api_analyze():
 
         est_distance = smart_distance_estimate(rssi, freq_mhz=freq, environment=env)
         
-        # تحجيم المسافة بنسبة 30% لمنع تشتت النقاط الافتراضية
-        compressed_distance = est_distance * 0.30 
+        # تحجيم المسافة لمنع تشتت النقاط الافتراضية وحصر النطاق بدقة
+        compressed_distance = est_distance * 0.40 
         
         virtual_towers = TowerGenerator.generate_virtual_towers(main_lat, main_lon, compressed_distance, final_angle)
 
@@ -597,8 +597,8 @@ def api_analyze():
 
         confidence = calculate_confidence(len(virtual_towers), rssi, env, refinement_status)
 
-        # حساب نصف قطر البحث (لا يقل أبداً عن 30 متر)
-        dynamic_search_radius = max(30, 130 - confidence)
+        # حساب نصف قطر البحث (مكبوح عند 50 متر كحد أدنى للنطاقات الحرجية)
+        dynamic_search_radius = max(50, 150 - confidence)
 
         response_payload = {
             'status': 'success',
