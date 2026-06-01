@@ -518,7 +518,7 @@ function plotGeographicalData(res) {
 
         let final = res.final_result;
         if(final) {
-            // رسم دائرة التمركز والبحث الضيق (50 متر أو أكثر حسب الدقة)
+            // رسم دائرة التمركز والبحث الضيق (30 متر أو أكثر حسب الدقة)
             let searchZone = L.circle([final.lat, final.lon], {
                 radius: final.search_radius,
                 color: '#ec4899',
@@ -535,7 +535,7 @@ function plotGeographicalData(res) {
             markers.push(phoneMarker);
             
             // عمل تقريب (Zoom) مباشر على دائرة البحث الضيقة
-            map.fitBounds(searchZone.getBounds().pad(0.5));
+            map.fitBounds(searchZone.getBounds().pad(0.3));
         } else if(markers.length > 0) {
             let group = new L.featureGroup(markers);
             map.fitBounds(group.getBounds().pad(0.3));
@@ -577,8 +577,8 @@ def api_analyze():
 
         est_distance = smart_distance_estimate(rssi, freq_mhz=freq, environment=env)
         
-        # تحجيم المسافة بنسبة 40% لمنع تشتت النقاط الافتراضية
-        compressed_distance = est_distance * 0.40 
+        # تحجيم المسافة بنسبة 30% لمنع تشتت النقاط الافتراضية
+        compressed_distance = est_distance * 0.30 
         
         virtual_towers = TowerGenerator.generate_virtual_towers(main_lat, main_lon, compressed_distance, final_angle)
 
@@ -597,8 +597,8 @@ def api_analyze():
 
         confidence = calculate_confidence(len(virtual_towers), rssi, env, refinement_status)
 
-        # حساب نصف قطر البحث (لا يقل أبداً عن 50 متر)
-        dynamic_search_radius = max(50, 150 - confidence)
+        # حساب نصف قطر البحث (لا يقل أبداً عن 30 متر)
+        dynamic_search_radius = max(30, 130 - confidence)
 
         response_payload = {
             'status': 'success',
