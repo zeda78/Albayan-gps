@@ -224,7 +224,7 @@ HTML_TEMPLATE = '''
             color: var(--text); 
             font-family: 'Cairo', sans-serif; 
             min-height: 100vh; 
-            overflow-x: hidden; /* يمنع التمرير الأفقي المزعج في الهواتف */
+            overflow-x: hidden;
             position: relative;
         }
         
@@ -233,7 +233,6 @@ HTML_TEMPLATE = '''
         .header h1 { font-size: 1.25em; font-weight: 800; background: linear-gradient(135deg, #3b82f6, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .grid { display: flex; flex: 1; gap: 10px; min-height: 0; }
         
-        /* الشريط الجانبي (لوحة التحكم) */
         .sidebar { width: 380px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; padding-right: 2px; position: relative; z-index: 5; }
         .sidebar::-webkit-scrollbar { width: 5px; }
         .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
@@ -242,22 +241,22 @@ HTML_TEMPLATE = '''
         .card-title { font-size: 0.95em; font-weight: 700; color: #60a5fa; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 6px; }
         .form-group { margin-bottom: 10px; }
         .form-group label { display: block; font-weight: 600; margin-bottom: 4px; color: var(--text-muted); font-size: 0.85em; }
-        input, select { width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: rgba(15, 23, 42, 0.8); color: var(--text); font-family: 'Cairo'; font-size: 0.95em; } /* تكبير حقول الإدخال لتناسب اللمس بالأصابع */
+        input, select { width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: rgba(15, 23, 42, 0.8); color: var(--text); font-family: 'Cairo'; font-size: 0.95em; }
         .btn { width: 100%; padding: 12px; border-radius: 8px; border: none; font-family: 'Cairo'; font-size: 1em; font-weight: 700; cursor: pointer; transition: all 0.2s; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; margin-top: 5px; }
         .btn:hover { opacity: 0.9; transform: translateY(-1px); }
         
-        /* منطقة الخريطة */
-        .map-container { flex: 1; background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; position: relative; backdrop-filter: blur(8px); z-index: 4; }
-        #map { height: 100%; width: 100%; }
+        .map-container { flex: 1; background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; position: relative; backdrop-filter: blur(8px); z-index: 4; display: flex; flex-direction: column; }
+        #map { flex: 1; height: 100%; width: 100%; z-index: 1; }
         
         .map-watermark {
             position: absolute; top: 15px; right: 15px; z-index: 1000;
             background: rgba(15, 23, 42, 0.9); padding: 8px 14px; border-radius: 8px;
             border: 1px solid var(--border); display: flex; align-items: center; gap: 10px;
+            pointer-events: none;
         }
         .map-watermark span { font-size: 0.85em; font-weight: 700; color: #f1f5f9; }
 
-        .map-legend { position: absolute; bottom: 20px; left: 20px; background: rgba(15, 23, 42, 0.95); padding: 12px; border-radius: 8px; border: 1px solid var(--border); z-index: 1000; font-size: 0.8em; max-width: calc(100% - 40px); }
+        .map-legend { position: absolute; bottom: 20px; left: 20px; background: rgba(15, 23, 42, 0.95); padding: 12px; border-radius: 8px; border: 1px solid var(--border); z-index: 1000; font-size: 0.8em; max-width: calc(100% - 40px); pointer-events: none; }
         .legend-item { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
         .legend-icon { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
         
@@ -272,23 +271,30 @@ HTML_TEMPLATE = '''
         .loading { display: none; text-align: center; padding: 20px; color: var(--info); font-size: 0.95em; font-weight: bold; background: rgba(30, 41, 59, 0.5); border-radius: 8px; border: 1px dashed var(--border); }
         .loading.active { display: block; }
 
-        /* 📱 إعدادات التجاوب مع شاشات الهواتف (Responsive Media Queries) */
+        /* 📱 التعديلات الجذرية للهواتف المحمولة لحل مشكلة الشاشة السوداء */
         @media (max-width: 768px) {
-            body { overflow-y: auto; } /* تفعيل التمرير العمودي الكلي للصفحة */
-            .container { height: auto; min-height: 100vh; overflow: visible; padding: 5px; }
+            body { overflow-y: auto; }
+            .container { height: auto; min-height: 100vh; overflow: visible; padding: 5px; display: block; }
             .header { flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px; }
             .header h1 { font-size: 1.1em; line-height: 1.4; }
+            .grid { flex-direction: column; display: block; }
+            .sidebar { width: 100%; max-height: none; padding-right: 0; margin-bottom: 10px; display: block; }
             
-            /* تكديس الواجهة ليكون التحكم أعلى والخريطة أسفل */
-            .grid { flex-direction: column; }
+            /* الفرض الإجباري لارتفاع الخريطة على الجوال لمنع اختفائها */
+            .map-container { 
+                height: 60vh !important; /* ارتفاع يأخذ 60% من الشاشة */
+                min-height: 400px !important; /* لا يقل عن 400 بكسل أبداً */
+                margin-bottom: 20px;
+                display: block; 
+                position: relative;
+            }
+            #map {
+                position: absolute;
+                top: 0; bottom: 0; left: 0; right: 0; /* تعبئة الحاوية بالكامل */
+                height: 100% !important; 
+                width: 100% !important;
+            }
             
-            /* أخذ العرض بالكامل للوحة التحكم في الجوال */
-            .sidebar { width: 100%; flex: none; overflow-y: visible; max-height: none; padding-right: 0; }
-            
-            /* إعطاء الخريطة ارتفاع ثابت على الهواتف لتجنب اختفائها */
-            .map-container { min-height: 450px; flex: none; margin-bottom: 10px; }
-            
-            /* تصغير حجم أسطورة الخريطة لتناسب شاشات الجوال */
             .map-legend { font-size: 0.75em; padding: 8px; bottom: 10px; left: 10px; }
             .map-watermark { top: 10px; right: 10px; padding: 6px 10px; }
         }
@@ -410,8 +416,9 @@ function initMap() {
             attribution: 'Google Maps'
         }).addTo(map);
         
-        // تحديث أبعاد الخريطة في حالة تغيير حجم الشاشة أو تدوير الهاتف
+        // تحديث إجباري للأبعاد بعد تحميل الصفحة لضمان عدم بقاء الخريطة سوداء
         setTimeout(() => { map.invalidateSize(); }, 500);
+        setTimeout(() => { map.invalidateSize(); }, 1500);
         
     } catch(e) {
         console.error("Google Maps integration failed:", e);
@@ -580,7 +587,7 @@ function plotGeographicalData(res) {
 }
 
 window.onload = initMap;
-// تحديث التخطيط عند تدوير الهاتف
+// تحديث التخطيط عند التمرير أو تدوير الهاتف لضمان بقاء الخريطة
 window.addEventListener('resize', () => { if(map) map.invalidateSize(); });
 </script>
 </body>
