@@ -198,14 +198,14 @@ def calculate_confidence(towers_used, signal_quality, environment, angle_quality
     return min(score, 100)
 
 # ═══════════════════════════════════════════════════════════════
-# واجهة العرض - مدمج بها خرائط Google Maps القمر الصناعي الهجين
+# واجهة العرض - التحديث الشامل لدعم الهواتف المحمولة (Responsive)
 # ═══════════════════════════════════════════════════════════════
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>مديرية أمن طرابلس - منظومة البيان</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -224,24 +224,29 @@ HTML_TEMPLATE = '''
             color: var(--text); 
             font-family: 'Cairo', sans-serif; 
             min-height: 100vh; 
-            overflow: hidden;
+            overflow-x: hidden; /* يمنع التمرير الأفقي المزعج في الهواتف */
             position: relative;
         }
         
-        .container { max-width: 100%; height: 100vh; display: flex; flex-direction: column; padding: 10px; gap: 10px; position: relative; z-index: 2; }
-        .header { background: var(--card); padding: 12px 20px; border-radius: 12px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; backdrop-filter: blur(8px); }
+        .container { width: 100%; height: 100vh; display: flex; flex-direction: column; padding: 10px; gap: 10px; position: relative; z-index: 2; }
+        .header { background: var(--card); padding: 12px 20px; border-radius: 12px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; backdrop-filter: blur(8px); flex-wrap: wrap; }
         .header h1 { font-size: 1.25em; font-weight: 800; background: linear-gradient(135deg, #3b82f6, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .grid { display: flex; flex: 1; gap: 10px; min-height: 0; }
+        
+        /* الشريط الجانبي (لوحة التحكم) */
         .sidebar { width: 380px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; padding-right: 2px; position: relative; z-index: 5; }
         .sidebar::-webkit-scrollbar { width: 5px; }
         .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        
         .card { background: var(--card); border-radius: 12px; padding: 15px; border: 1px solid var(--border); backdrop-filter: blur(8px); }
         .card-title { font-size: 0.95em; font-weight: 700; color: #60a5fa; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 6px; }
         .form-group { margin-bottom: 10px; }
         .form-group label { display: block; font-weight: 600; margin-bottom: 4px; color: var(--text-muted); font-size: 0.85em; }
-        input, select { width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: rgba(15, 23, 42, 0.8); color: var(--text); font-family: 'Cairo'; font-size: 0.9em; }
-        .btn { width: 100%; padding: 10px; border-radius: 8px; border: none; font-family: 'Cairo'; font-size: 0.95em; font-weight: 700; cursor: pointer; transition: all 0.2s; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; }
+        input, select { width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: rgba(15, 23, 42, 0.8); color: var(--text); font-family: 'Cairo'; font-size: 0.95em; } /* تكبير حقول الإدخال لتناسب اللمس بالأصابع */
+        .btn { width: 100%; padding: 12px; border-radius: 8px; border: none; font-family: 'Cairo'; font-size: 1em; font-weight: 700; cursor: pointer; transition: all 0.2s; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; margin-top: 5px; }
         .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        
+        /* منطقة الخريطة */
         .map-container { flex: 1; background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; position: relative; backdrop-filter: blur(8px); z-index: 4; }
         #map { height: 100%; width: 100%; }
         
@@ -252,12 +257,13 @@ HTML_TEMPLATE = '''
         }
         .map-watermark span { font-size: 0.85em; font-weight: 700; color: #f1f5f9; }
 
-        .map-legend { position: absolute; bottom: 20px; left: 20px; background: rgba(15, 23, 42, 0.9); padding: 12px; border-radius: 8px; border: 1px solid var(--border); z-index: 1000; font-size: 0.8em; }
+        .map-legend { position: absolute; bottom: 20px; left: 20px; background: rgba(15, 23, 42, 0.95); padding: 12px; border-radius: 8px; border: 1px solid var(--border); z-index: 1000; font-size: 0.8em; max-width: calc(100% - 40px); }
         .legend-item { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
-        .legend-icon { width: 12px; height: 12px; border-radius: 50%; }
+        .legend-icon { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+        
         .result-section { display: none; flex-direction: column; gap: 10px; }
         .result-section.active { display: flex; }
-        .mini-row { display: flex; justify-content: space-between; font-size: 0.85em; padding: 3px 0; border-bottom: 1px dashed rgba(255,255,255,0.05); }
+        .mini-row { display: flex; justify-content: space-between; font-size: 0.85em; padding: 4px 0; border-bottom: 1px dashed rgba(255,255,255,0.05); }
         .mini-label { color: var(--text-muted); }
         .mini-value { color: #f1f5f9; font-weight: 600; direction: ltr; }
         .confidence-container { margin-top: 8px; }
@@ -265,14 +271,35 @@ HTML_TEMPLATE = '''
         .confidence-fill { height: 100%; width: 0%; transition: width 0.5s ease; }
         .loading { display: none; text-align: center; padding: 20px; color: var(--info); font-size: 0.95em; font-weight: bold; background: rgba(30, 41, 59, 0.5); border-radius: 8px; border: 1px dashed var(--border); }
         .loading.active { display: block; }
+
+        /* 📱 إعدادات التجاوب مع شاشات الهواتف (Responsive Media Queries) */
+        @media (max-width: 768px) {
+            body { overflow-y: auto; } /* تفعيل التمرير العمودي الكلي للصفحة */
+            .container { height: auto; min-height: 100vh; overflow: visible; padding: 5px; }
+            .header { flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px; }
+            .header h1 { font-size: 1.1em; line-height: 1.4; }
+            
+            /* تكديس الواجهة ليكون التحكم أعلى والخريطة أسفل */
+            .grid { flex-direction: column; }
+            
+            /* أخذ العرض بالكامل للوحة التحكم في الجوال */
+            .sidebar { width: 100%; flex: none; overflow-y: visible; max-height: none; padding-right: 0; }
+            
+            /* إعطاء الخريطة ارتفاع ثابت على الهواتف لتجنب اختفائها */
+            .map-container { min-height: 450px; flex: none; margin-bottom: 10px; }
+            
+            /* تصغير حجم أسطورة الخريطة لتناسب شاشات الجوال */
+            .map-legend { font-size: 0.75em; padding: 8px; bottom: 10px; left: 10px; }
+            .map-watermark { top: 10px; right: 10px; padding: 6px 10px; }
+        }
     </style>
 </head>
 <body>
 <div class="container">
     <div class="header">
-        <h1>مديرية أمن طرابلس - وحدة التقصي والبيان - منظومة التتبع</h1>
+        <h1>مديرية أمن طرابلس - وحدة التقصي والبيان</h1>
         <div style="font-size: 0.85em; color: #10b981; font-weight: 700; display: flex; align-items: center; gap: 5px;">
-            <span>● محرك الخرائط: Google Maps</span>
+            <span>● محرك الخرائط: Google Maps | متوافق مع الموبايل</span>
         </div>
     </div>
     <div class="grid">
@@ -280,7 +307,7 @@ HTML_TEMPLATE = '''
             <div class="card">
                 <div class="card-title">📡 مدخلات المحطة والخلية</div>
                 <div class="form-group">
-                    <label>معرف الخلية الرئيسي (Cell ID)</label>
+                    <label>معرف الخلية (Cell ID)</label>
                     <input type="text" id="cellId" value="606-01-1021-8973">
                 </div>
                 <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
@@ -309,35 +336,35 @@ HTML_TEMPLATE = '''
                 </div>
                 <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                     <div>
-                        <label>مستوى خسارة الإشارة</label>
+                        <label>الخسارة (RSSI)</label>
                         <select id="signal">
                             <option value="-60">قوية (-60 dBm)</option>
-                            <option value="-78" selected>متوسطة (-78 dBm)</option>
+                            <option value="-78" selected>متوسطة (-78)</option>
                             <option value="-95">ضعيفة (-95 dBm)</option>
                             <option value="-110">ميتة (-110 dBm)</option>
                         </select>
                     </div>
                     <div>
-                        <label>التردد الراديوي</label>
+                        <label>التردد (Band)</label>
                         <select id="freq">
-                            <option value="900" selected>900 MHz (GSM)</option>
-                            <option value="1800">1800 MHz (DCS)</option>
-                            <option value="2100">2100 MHz (3G)</option>
+                            <option value="900" selected>900 MHz</option>
+                            <option value="1800">1800 MHz</option>
+                            <option value="2100">2100 MHz</option>
                         </select>
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>الطبيعة الطبوغرافية (البيئة)</label>
+                    <label>البيئة الطبوغرافية</label>
                     <select id="environment">
                         <option value="urban" selected>مدنية مزدحمة (Urban)</option>
                         <option value="suburban">ضواحي مفتوحة (Suburban)</option>
                         <option value="rural">شبه صحراوية / ريفية (Rural)</option>
                     </select>
                 </div>
-                <button class="btn" onclick="executeAnalysis()">🎯 إسقاط وبدء الحساب الجغرافي</button>
+                <button class="btn" onclick="executeAnalysis()">🎯 إسقاط وبدء التتبع</button>
             </div>
 
-            <div class="loading" id="loader">⏳ جاري معالجة مصفوفة التثليث وتحديد النطاق...</div>
+            <div class="loading" id="loader">⏳ جاري معالجة المصفوفة وتحديد النطاق...</div>
 
             <div class="result-section" id="resultsBox">
                 <div class="card">
@@ -350,15 +377,16 @@ HTML_TEMPLATE = '''
                 </div>
             </div>
         </div>
+        
         <div class="map-container">
             <div id="map"></div>
             
             <div class="map-watermark">
-                <span>غرفة العمليات والتحليل الرقمي</span>
+                <span>غرفة العمليات الرقمية</span>
             </div>
 
             <div class="map-legend">
-                <div style="font-weight: bold; margin-bottom: 5px; color:#60a5fa;">مفتاح الرموز الجغرافية</div>
+                <div style="font-weight: bold; margin-bottom: 5px; color:#60a5fa;">الرموز الجغرافية</div>
                 <div class="legend-item"><div class="legend-icon" style="background:#f97316;"></div><span>البرج المستهدف الأساسي</span></div>
                 <div class="legend-item"><div class="legend-icon" style="background:#8b5cf6;"></div><span>نقاط التثليث الافتراضية</span></div>
                 <div class="legend-item"><div class="legend-icon" style="background:#ef4444;"></div><span>قطاع التغطية للإشارة</span></div>
@@ -373,13 +401,17 @@ let map, markers = [], layers = [];
 
 function initMap() {
     try {
-        map = L.map('map', { center: [32.8538, 13.2415], zoom: 14, attributionControl: false });
+        // إعداد الخريطة لتبدأ بزووم مريح للعين
+        map = L.map('map', { center: [32.8538, 13.2415], zoom: 13, attributionControl: false });
         
-        // ربط محرك الخرائط بـ Google Maps الفضائي الهجين (الصور الفضائية + أسماء الشوارع)
+        // ربط محرك الخرائط بـ Google Maps الفضائي الهجين
         L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
             maxZoom: 20,
             attribution: 'Google Maps'
         }).addTo(map);
+        
+        // تحديث أبعاد الخريطة في حالة تغيير حجم الشاشة أو تدوير الهاتف
+        setTimeout(() => { map.invalidateSize(); }, 500);
         
     } catch(e) {
         console.error("Google Maps integration failed:", e);
@@ -452,8 +484,13 @@ function executeAnalysis() {
         if(data && data.status === 'success' && data.result) {
             renderInterfaceData(data.result);
             plotGeographicalData(data.result);
+            
+            // التمرير التلقائي للأسفل لرؤية الخريطة في الهواتف بعد الحساب
+            if(window.innerWidth <= 768) {
+                document.querySelector('.map-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
         } else {
-            alert("حدث خطأ في معالجة خوارزمية التثليث الراديوي داخل السيرفر.");
+            alert("حدث خطأ في معالجة خوارزمية التثليث الراديوي.");
         }
     })
     .catch(err => {
@@ -478,16 +515,16 @@ function renderInterfaceData(result) {
 
         document.getElementById('cellDetails').innerHTML = `
             <div class="mini-row"><span class="mini-label">المشغل المحلي</span><span class="mini-value" style="color:#60a5fa">${provider}</span></div>
-            <div class="mini-row"><span class="mini-label">الرمز الدولي (MCC-MNC)</span><span class="mini-value">${mcc} - ${mnc}</span></div>
-            <div class="mini-row"><span class="mini-label">موقع الرمز (LAC-CID)</span><span class="mini-value">${lac} - ${cid}</span></div>
+            <div class="mini-row"><span class="mini-label">الرمز الدولي</span><span class="mini-value">${mcc} - ${mnc}</span></div>
+            <div class="mini-row"><span class="mini-label">موقع الرمز</span><span class="mini-value">${lac} - ${cid}</span></div>
             <div class="mini-row"><span class="mini-label">الزاوية المستخرجة</span><span class="mini-value">${extAngle}°</span></div>
         `;
 
         document.getElementById('distanceDetails').innerHTML = `
             <div class="mini-row"><span class="mini-label">نطاق التفتيش الدقيق</span><span class="mini-value" style="color:#ec4899">${searchRadius} م</span></div>
-            <div class="mini-row"><span class="mini-label">حالة الحدود الجغرافية</span><span class="mini-value" style="color:#10b981">مكبوحة بريّاً</span></div>
+            <div class="mini-row"><span class="mini-label">الحدود الجغرافية</span><span class="mini-value" style="color:#10b981">مكبوحة بريّاً</span></div>
             <div class="confidence-container">
-                <div class="mini-row"><span class="mini-label">درجة الدقة والموثوقية الجغرافية</span><span class="mini-value" style="color:#10b981">${confidence}%</span></div>
+                <div class="mini-row"><span class="mini-label">درجة الدقة والموثوقية</span><span class="mini-value" style="color:#10b981">${confidence}%</span></div>
                 <div class="confidence-bar"><div class="confidence-fill" style="width:${confidence}%; background:#10b981"></div></div>
             </div>
         `;
@@ -518,7 +555,6 @@ function plotGeographicalData(res) {
 
         let final = res.final_result;
         if(final) {
-            // رسم دائرة التمركز والبحث الضيق (50 متر أو أكثر حسب الدقة)
             let searchZone = L.circle([final.lat, final.lon], {
                 radius: final.search_radius,
                 color: '#ec4899',
@@ -534,7 +570,7 @@ function plotGeographicalData(res) {
             }).addTo(map);
             markers.push(phoneMarker);
             
-            // عمل تقريب فوري ومباشر على نطاق الـ 50 متر الفعلي
+            // عمل تقريب فوري ومباشر على نطاق التفتيش الفعلي
             map.fitBounds(searchZone.getBounds().pad(0.5));
         } else if(markers.length > 0) {
             let group = new L.featureGroup(markers);
@@ -544,6 +580,8 @@ function plotGeographicalData(res) {
 }
 
 window.onload = initMap;
+// تحديث التخطيط عند تدوير الهاتف
+window.addEventListener('resize', () => { if(map) map.invalidateSize(); });
 </script>
 </body>
 </html>
@@ -571,7 +609,7 @@ def api_analyze():
         
         if user_direction == "auto":
             final_angle = ext_angle
-            refinement_status = "استخراج آلي كامل من خوارزمية السيكتور"
+            refinement_status = "استخراج آلي من خوارزمية السيكتور"
         else:
             final_angle, refinement_status = CellIDAnalyzer.refine_angle(user_direction, cell_analysis['angle_info'])
 
