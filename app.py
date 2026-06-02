@@ -4,6 +4,9 @@ import os
 
 app = Flask(__name__)
 
+# ═══════════════════════════════════════════════════════════════
+# خوارزميات التثليث الراديوي والحسابات الجغرافية والكبح البري
+# ═══════════════════════════════════════════════════════════════
 class TowerGenerator:
     @staticmethod
     def generate_virtual_towers(main_lat, main_lon, main_distance, final_angle):
@@ -185,6 +188,9 @@ def calculate_confidence(towers_used, signal_quality, environment, angle_quality
     else: score += 5
     return min(score, 100)
 
+# ═══════════════════════════════════════════════════════════════
+# واجهة العرض - مساحة كاملة للخريطة الفضائية على الهواتف
+# ═══════════════════════════════════════════════════════════════
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -227,11 +233,6 @@ HTML_TEMPLATE = '''
         .map-container { flex: 1; min-height: 400px; background: #000; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; position: relative; z-index: 4; }
         #map { position: absolute; top: 0; bottom: 0; left: 0; right: 0; width: 100%; height: 100%; z-index: 1; }
         
-        .map-watermark { position: absolute; top: 15px; right: 15px; z-index: 1000; background: rgba(15, 23, 42, 0.9); padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border); pointer-events: none; font-size: 0.85em; font-weight: 700; }
-        .map-legend { position: absolute; bottom: 20px; left: 20px; background: rgba(15, 23, 42, 0.95); padding: 12px; border-radius: 8px; border: 1px solid var(--border); z-index: 1000; font-size: 0.8em; pointer-events: none; }
-        .legend-item { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
-        .legend-icon { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
-        
         .result-section { display: none; flex-direction: column; gap: 10px; }
         .result-section.active { display: flex; }
         .mini-row { display: flex; justify-content: space-between; font-size: 0.85em; padding: 4px 0; border-bottom: 1px dashed rgba(255,255,255,0.05); }
@@ -249,9 +250,7 @@ HTML_TEMPLATE = '''
             .header { flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px; }
             .grid { flex-direction: column; }
             .sidebar { width: 100%; flex: none; margin-bottom: 10px; }
-            .map-container { min-height: 60vh; flex: none; width: 100%; margin-bottom: 20px; }
-            .map-legend { font-size: 0.75em; padding: 8px; bottom: 10px; left: 10px; }
-            .map-watermark { top: 10px; right: 10px; padding: 6px 10px; }
+            .map-container { min-height: 65vh; flex: none; width: 100%; margin-bottom: 20px; }
         }
     </style>
 </head>
@@ -259,7 +258,7 @@ HTML_TEMPLATE = '''
 <div class="container">
     <div class="header">
         <h1>مديرية أمن طرابلس - وحدة التقصي والبيان</h1>
-        <div style="font-size: 0.85em; color: #10b981; font-weight: 700;">● محرك الخرائط: Google Maps | متوافق مع الموبايل</div>
+        <div style="font-size: 0.85em; color: #10b981; font-weight: 700;">● محرك الخرائط: Google Maps الفضائي</div>
     </div>
     <div class="grid">
         <div class="sidebar">
@@ -316,7 +315,7 @@ HTML_TEMPLATE = '''
                 </div>
                 <button class="btn" onclick="executeAnalysis()">🎯 إسقاط وبدء التتبع</button>
             </div>
-            <div class="loading" id="loader">⏳ جاري معالجة المصفوفة وتحديد النطاق...</div>
+            <div class="loading" id="loader">⏳ جاري معالجة مصفوفة التثليث وتحديد النطاق...</div>
             <div class="result-section" id="resultsBox">
                 <div class="card"><div class="card-title">🔍 تفاصيل الخلية</div><div id="cellDetails"></div></div>
                 <div class="card"><div class="card-title">🎯 النطاق الجغرافي والموثوقية</div><div id="distanceDetails"></div></div>
@@ -325,14 +324,6 @@ HTML_TEMPLATE = '''
         
         <div class="map-container">
             <div id="map"></div>
-            <div class="map-watermark">غرفة العمليات الرقمية</div>
-            <div class="map-legend">
-                <div style="font-weight: bold; margin-bottom: 5px; color:#60a5fa;">الرموز الجغرافية</div>
-                <div class="legend-item"><div class="legend-icon" style="background:#f97316;"></div><span>البرج الأساسي</span></div>
-                <div class="legend-item"><div class="legend-icon" style="background:#8b5cf6;"></div><span>نقاط افتراضية</span></div>
-                <div class="legend-item"><div class="legend-icon" style="background:#ef4444;"></div><span>قطاع التغطية</span></div>
-                <div class="legend-item"><div class="legend-icon" style="background:#ec4899;"></div><span>نطاق التفتيش (50م)</span></div>
-            </div>
         </div>
     </div>
 </div>
