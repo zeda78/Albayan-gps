@@ -4,9 +4,6 @@ import os
 
 app = Flask(__name__)
 
-# ═══════════════════════════════════════════════════════════════
-# خوارزميات التثليث الراديوي والحسابات الجغرافية والكبح البري
-# ═══════════════════════════════════════════════════════════════
 class TowerGenerator:
     @staticmethod
     def generate_virtual_towers(main_lat, main_lon, main_distance, final_angle):
@@ -16,10 +13,7 @@ class TowerGenerator:
             dist_factor = 1.0 + (0.15 * (1 - i))
             tower_dist = main_distance * dist_factor
             tower_lat, tower_lon = move(main_lat, main_lon, angle, tower_dist)
-            
-            # كبح الأبراج الافتراضية أيضاً لضمان عدم خروجها للبحر
             tower_lat, tower_lon = GeoConstraint.clamp_to_land(tower_lat, tower_lon)
-            
             real_dist = haversine(main_lat, main_lon, tower_lat, tower_lon)
             est_signal = -85 - (abs(i - 1) * 7)
             towers.append({
@@ -36,10 +30,9 @@ class TowerGenerator:
         return towers
 
 class GeoConstraint:
-    """منظومة ذكية لمنع نقاط التتبع من السباحة في البحر وكبحها على اليابسة"""
     @staticmethod
     def clamp_to_land(lat, lon):
-        MAX_SAFE_LAT = 32.905000  # حافة خط الساحل المعتمدة بالمنظومة
+        MAX_SAFE_LAT = 32.905000
         if lat > MAX_SAFE_LAT:
             return MAX_SAFE_LAT, lon
         return lat, lon
@@ -83,11 +76,9 @@ class CellIDAnalyzer:
                     result['format'] = 'عشري قياسي'
                 except:
                     pass
-        
         if result['mcc'] == 606:
             if result['mnc'] == 0: result['provider'] = 'Libyana'
             else: result['provider'] = 'Al-Madar'
-            
         result['angle_info'] = CellIDAnalyzer.extract_angle_from_cid(result['cid'], result['provider'])
         return result
 
@@ -110,12 +101,9 @@ class CellIDAnalyzer:
         extracted_angle = extracted_angle_info['angle']
         angle_diff = abs(user_angle - extracted_angle)
         if angle_diff > 180: angle_diff = 360 - angle_diff
-        if angle_diff <= 30:
-            return (user_angle + extracted_angle) / 2, f"تطابق عالي (فرق {angle_diff}°)"
-        elif angle_diff <= 90:
-            return user_angle, f"تصحيح جزئي (فرق {angle_diff}°)"
-        else:
-            return user_angle, f"تعارض كبير (فرق {angle_diff}°)"
+        if angle_diff <= 30: return (user_angle + extracted_angle) / 2, f"تطابق عالي (فرق {angle_diff}°)"
+        elif angle_diff <= 90: return user_angle, f"تصحيح جزئي (فرق {angle_diff}°)"
+        else: return user_angle, f"تعارض كبير (فرق {angle_diff}°)"
 
 def hata_urban(rssi_dbm, freq_mhz=900):
     eirp_dbm = 46 + 15
@@ -197,9 +185,6 @@ def calculate_confidence(towers_used, signal_quality, environment, angle_quality
     else: score += 5
     return min(score, 100)
 
-# ═══════════════════════════════════════════════════════════════
-# واجهة العرض - التحديث الشامل لدعم الهواتف المحمولة (Responsive)
-# ═══════════════════════════════════════════════════════════════
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -215,7 +200,6 @@ HTML_TEMPLATE = '''
         :root {
             --primary: #2563eb; --primary-dark: #1d4ed8; --success: #10b981;
             --warning: #f59e0b; --danger: #ef4444; --info: #06b6d4;
-            --virtual: #8b5cf6; --main: #f97316; --phone: #ec4899;
             --bg: #0f172a; --card: rgba(30, 41, 59, 0.92); --border: #334155;
             --text: #f1f5f9; --text-muted: #94a3b8;
         }
@@ -225,38 +209,26 @@ HTML_TEMPLATE = '''
             font-family: 'Cairo', sans-serif; 
             min-height: 100vh; 
             overflow-x: hidden;
-            position: relative;
         }
         
-        .container { width: 100%; height: 100vh; display: flex; flex-direction: column; padding: 10px; gap: 10px; position: relative; z-index: 2; }
-        .header { background: var(--card); padding: 12px 20px; border-radius: 12px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; backdrop-filter: blur(8px); flex-wrap: wrap; }
+        .container { width: 100%; min-height: 100vh; display: flex; flex-direction: column; padding: 10px; gap: 10px; }
+        .header { background: var(--card); padding: 12px 20px; border-radius: 12px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
         .header h1 { font-size: 1.25em; font-weight: 800; background: linear-gradient(135deg, #3b82f6, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .grid { display: flex; flex: 1; gap: 10px; min-height: 0; }
+        .grid { display: flex; flex: 1; gap: 10px; }
         
-        .sidebar { width: 380px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; padding-right: 2px; position: relative; z-index: 5; }
-        .sidebar::-webkit-scrollbar { width: 5px; }
-        .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-        
-        .card { background: var(--card); border-radius: 12px; padding: 15px; border: 1px solid var(--border); backdrop-filter: blur(8px); }
+        .sidebar { width: 380px; display: flex; flex-direction: column; gap: 10px; z-index: 5; }
+        .card { background: var(--card); border-radius: 12px; padding: 15px; border: 1px solid var(--border); }
         .card-title { font-size: 0.95em; font-weight: 700; color: #60a5fa; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 6px; }
         .form-group { margin-bottom: 10px; }
         .form-group label { display: block; font-weight: 600; margin-bottom: 4px; color: var(--text-muted); font-size: 0.85em; }
         input, select { width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: rgba(15, 23, 42, 0.8); color: var(--text); font-family: 'Cairo'; font-size: 0.95em; }
         .btn { width: 100%; padding: 12px; border-radius: 8px; border: none; font-family: 'Cairo'; font-size: 1em; font-weight: 700; cursor: pointer; transition: all 0.2s; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; margin-top: 5px; }
-        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
         
-        .map-container { flex: 1; background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; position: relative; backdrop-filter: blur(8px); z-index: 4; display: flex; flex-direction: column; }
-        #map { flex: 1; height: 100%; width: 100%; z-index: 1; }
+        .map-container { flex: 1; min-height: 400px; background: #000; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; position: relative; z-index: 4; }
+        #map { position: absolute; top: 0; bottom: 0; left: 0; right: 0; width: 100%; height: 100%; z-index: 1; }
         
-        .map-watermark {
-            position: absolute; top: 15px; right: 15px; z-index: 1000;
-            background: rgba(15, 23, 42, 0.9); padding: 8px 14px; border-radius: 8px;
-            border: 1px solid var(--border); display: flex; align-items: center; gap: 10px;
-            pointer-events: none;
-        }
-        .map-watermark span { font-size: 0.85em; font-weight: 700; color: #f1f5f9; }
-
-        .map-legend { position: absolute; bottom: 20px; left: 20px; background: rgba(15, 23, 42, 0.95); padding: 12px; border-radius: 8px; border: 1px solid var(--border); z-index: 1000; font-size: 0.8em; max-width: calc(100% - 40px); pointer-events: none; }
+        .map-watermark { position: absolute; top: 15px; right: 15px; z-index: 1000; background: rgba(15, 23, 42, 0.9); padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border); pointer-events: none; font-size: 0.85em; font-weight: 700; }
+        .map-legend { position: absolute; bottom: 20px; left: 20px; background: rgba(15, 23, 42, 0.95); padding: 12px; border-radius: 8px; border: 1px solid var(--border); z-index: 1000; font-size: 0.8em; pointer-events: none; }
         .legend-item { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
         .legend-icon { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
         
@@ -267,34 +239,17 @@ HTML_TEMPLATE = '''
         .mini-value { color: #f1f5f9; font-weight: 600; direction: ltr; }
         .confidence-container { margin-top: 8px; }
         .confidence-bar { width: 100%; height: 6px; background: rgba(0,0,0,0.3); border-radius: 3px; overflow: hidden; margin-top: 4px; }
-        .confidence-fill { height: 100%; width: 0%; transition: width 0.5s ease; }
+        .confidence-fill { height: 100%; transition: width 0.5s ease; }
         .loading { display: none; text-align: center; padding: 20px; color: var(--info); font-size: 0.95em; font-weight: bold; background: rgba(30, 41, 59, 0.5); border-radius: 8px; border: 1px dashed var(--border); }
         .loading.active { display: block; }
 
-        /* 📱 التعديلات الجذرية للهواتف المحمولة لحل مشكلة الشاشة السوداء */
         @media (max-width: 768px) {
             body { overflow-y: auto; }
-            .container { height: auto; min-height: 100vh; overflow: visible; padding: 5px; display: block; }
+            .container { padding: 5px; height: auto; }
             .header { flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px; }
-            .header h1 { font-size: 1.1em; line-height: 1.4; }
-            .grid { flex-direction: column; display: block; }
-            .sidebar { width: 100%; max-height: none; padding-right: 0; margin-bottom: 10px; display: block; }
-            
-            /* الفرض الإجباري لارتفاع الخريطة على الجوال لمنع اختفائها */
-            .map-container { 
-                height: 60vh !important; /* ارتفاع يأخذ 60% من الشاشة */
-                min-height: 400px !important; /* لا يقل عن 400 بكسل أبداً */
-                margin-bottom: 20px;
-                display: block; 
-                position: relative;
-            }
-            #map {
-                position: absolute;
-                top: 0; bottom: 0; left: 0; right: 0; /* تعبئة الحاوية بالكامل */
-                height: 100% !important; 
-                width: 100% !important;
-            }
-            
+            .grid { flex-direction: column; }
+            .sidebar { width: 100%; flex: none; margin-bottom: 10px; }
+            .map-container { min-height: 60vh; flex: none; width: 100%; margin-bottom: 20px; }
             .map-legend { font-size: 0.75em; padding: 8px; bottom: 10px; left: 10px; }
             .map-watermark { top: 10px; right: 10px; padding: 6px 10px; }
         }
@@ -304,9 +259,7 @@ HTML_TEMPLATE = '''
 <div class="container">
     <div class="header">
         <h1>مديرية أمن طرابلس - وحدة التقصي والبيان</h1>
-        <div style="font-size: 0.85em; color: #10b981; font-weight: 700; display: flex; align-items: center; gap: 5px;">
-            <span>● محرك الخرائط: Google Maps | متوافق مع الموبايل</span>
-        </div>
+        <div style="font-size: 0.85em; color: #10b981; font-weight: 700;">● محرك الخرائط: Google Maps | متوافق مع الموبايل</div>
     </div>
     <div class="grid">
         <div class="sidebar">
@@ -317,14 +270,8 @@ HTML_TEMPLATE = '''
                     <input type="text" id="cellId" value="606-01-1021-8973">
                 </div>
                 <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                    <div>
-                        <label>خط العرض (Lat)</label>
-                        <input type="number" id="lat" step="any" value="32.853826">
-                    </div>
-                    <div>
-                        <label>خط الطول (Lon)</label>
-                        <input type="number" id="lon" step="any" value="13.241509">
-                    </div>
+                    <div><label>خط العرض (Lat)</label><input type="number" id="lat" step="any" value="32.853826"></div>
+                    <div><label>خط الطول (Lon)</label><input type="number" id="lon" step="any" value="13.241509"></div>
                 </div>
                 <div class="form-group">
                     <label>الاتجاه الجغرافي المقدر</label>
@@ -349,6 +296,7 @@ HTML_TEMPLATE = '''
                             <option value="-95">ضعيفة (-95 dBm)</option>
                             <option value="-110">ميتة (-110 dBm)</option>
                         </select>
+                    </div>
                     <div>
                         <label>التردد (Band)</label>
                         <select id="freq">
@@ -356,6 +304,7 @@ HTML_TEMPLATE = '''
                             <option value="1800">1800 MHz</option>
                             <option value="2100">2100 MHz</option>
                         </select>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>البيئة الطبوغرافية</label>
@@ -367,27 +316,22 @@ HTML_TEMPLATE = '''
                 </div>
                 <button class="btn" onclick="executeAnalysis()">🎯 إسقاط وبدء التتبع</button>
             </div>
-
             <div class="loading" id="loader">⏳ جاري معالجة المصفوفة وتحديد النطاق...</div>
-
             <div class="result-section" id="resultsBox">
-                <div class="card">
-                    <div class="card-title">🔍 تفكيك وتحليل تفاصيل الخلية</div>
-                    <div id="cellDetails"></div>
-                </div>
-                <div class="card">
-                    <div class="card-title">🎯 تقدير النطاق الجغرافي والموثوقية</div>
-                    <div id="distanceDetails"></div>
+                <div class="card"><div class="card-title">🔍 تفاصيل الخلية</div><div id="cellDetails"></div></div>
+                <div class="card"><div class="card-title">🎯 النطاق الجغرافي والموثوقية</div><div id="distanceDetails"></div></div>
+            </div>
         </div>
         
         <div class="map-container">
             <div id="map"></div>
-            
-            <div class="map-watermark">
-                <span> </span>
-            </div>
-
+            <div class="map-watermark">غرفة العمليات الرقمية</div>
             <div class="map-legend">
+                <div style="font-weight: bold; margin-bottom: 5px; color:#60a5fa;">الرموز الجغرافية</div>
+                <div class="legend-item"><div class="legend-icon" style="background:#f97316;"></div><span>البرج الأساسي</span></div>
+                <div class="legend-item"><div class="legend-icon" style="background:#8b5cf6;"></div><span>نقاط افتراضية</span></div>
+                <div class="legend-item"><div class="legend-icon" style="background:#ef4444;"></div><span>قطاع التغطية</span></div>
+                <div class="legend-item"><div class="legend-icon" style="background:#ec4899;"></div><span>نطاق التفتيش (50م)</span></div>
             </div>
         </div>
     </div>
@@ -397,23 +341,9 @@ HTML_TEMPLATE = '''
 let map, markers = [], layers = [];
 
 function initMap() {
-    try {
-        // إعداد الخريطة لتبدأ بزووم مريح للعين
-        map = L.map('map', { center: [32.8538, 13.2415], zoom: 13, attributionControl: false });
-        
-        // ربط محرك الخرائط بـ Google Maps الفضائي الهجين
-        L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-            maxZoom: 20,
-            attribution: 'Google Maps'
-        }).addTo(map);
-        
-        // تحديث إجباري للأبعاد بعد تحميل الصفحة لضمان عدم بقاء الخريطة سوداء
-        setTimeout(() => { map.invalidateSize(); }, 500);
-        setTimeout(() => { map.invalidateSize(); }, 1500);
-        
-    } catch(e) {
-        console.error("Google Maps integration failed:", e);
-    }
+    map = L.map('map', { center: [32.8538, 13.2415], zoom: 13, attributionControl: false });
+    L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { maxZoom: 20 }).addTo(map);
+    setTimeout(() => { map.invalidateSize(); }, 500);
 }
 
 function cleanCanvas() {
@@ -423,35 +353,25 @@ function cleanCanvas() {
 }
 
 function drawVisualSector(lat, lon, angle, radius) {
-    try {
-        let angleRad = (angle * Math.PI) / 180;
-        let endLat = lat + (radius / 111320) * Math.cos(angleRad);
-        let endLon = lon + (radius / (111320 * Math.cos((lat * Math.PI) / 180))) * Math.sin(angleRad);
-        
-        if(endLat > 32.905000) { endLat = 32.905000; }
-
-        let centerLine = L.polyline([[lat, lon], [endLat, endLon]], { color: '#fbbf24', weight: 4, opacity: 0.95 }).addTo(map);
-        layers.push(centerLine);
-
-        let focusCircle = L.circle([endLat, endLon], {
-            radius: 20, color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.4, weight: 2
-        }).addTo(map);
-        layers.push(focusCircle);
-
-        let points = [[lat, lon]];
-        let startAngle = angle - 60;
-        let endAngle = angle + 60;
-        for(let i = startAngle; i <= endAngle; i += 5) {
-            let r = (i * Math.PI) / 180;
-            let pLat = lat + (radius / 111320) * Math.cos(r);
-            let pLon = lon + (radius / (111320 * Math.cos((lat * Math.PI) / 180))) * Math.sin(r);
-            if(pLat > 32.905000) { pLat = 32.905000; }
-            points.push([pLat, pLon]);
-        }
-        points.push([lat, lon]);
-        let arcArea = L.polygon(points, { color: '#fbbf24', fillColor: '#fbbf24', fillOpacity: 0.1, weight: 1, dashArray: '4,4' }).addTo(map);
-        layers.push(arcArea);
-    } catch(e) { console.error("Error drawing sector:", e); }
+    let angleRad = (angle * Math.PI) / 180;
+    let endLat = lat + (radius / 111320) * Math.cos(angleRad);
+    let endLon = lon + (radius / (111320 * Math.cos((lat * Math.PI) / 180))) * Math.sin(angleRad);
+    if(endLat > 32.905000) { endLat = 32.905000; }
+    let centerLine = L.polyline([[lat, lon], [endLat, endLon]], { color: '#fbbf24', weight: 4, opacity: 0.95 }).addTo(map);
+    layers.push(centerLine);
+    let focusCircle = L.circle([endLat, endLon], { radius: 20, color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.4, weight: 2 }).addTo(map);
+    layers.push(focusCircle);
+    let points = [[lat, lon]];
+    for(let i = angle - 60; i <= angle + 60; i += 5) {
+        let r = (i * Math.PI) / 180;
+        let pLat = lat + (radius / 111320) * Math.cos(r);
+        let pLon = lon + (radius / (111320 * Math.cos((lat * Math.PI) / 180))) * Math.sin(r);
+        if(pLat > 32.905000) { pLat = 32.905000; }
+        points.push([pLat, pLon]);
+    }
+    points.push([lat, lon]);
+    let arcArea = L.polygon(points, { color: '#fbbf24', fillColor: '#fbbf24', fillOpacity: 0.1, weight: 1, dashArray: '4,4' }).addTo(map);
+    layers.push(arcArea);
 }
 
 function executeAnalysis() {
@@ -472,113 +392,71 @@ function executeAnalysis() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
-    })
-    .then(res => {
-        if(!res.ok) throw new Error("HTTP error " + res.status);
-        return res.json();
-    })
-    .then(data => {
+    }).then(res => res.json()).then(data => {
         document.getElementById('loader').classList.remove('active');
-        if(data && data.status === 'success' && data.result) {
+        if(data && data.status === 'success') {
             renderInterfaceData(data.result);
             plotGeographicalData(data.result);
-            
-            // التمرير التلقائي للأسفل لرؤية الخريطة في الهواتف بعد الحساب
             if(window.innerWidth <= 768) {
                 document.querySelector('.map-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
-        } else {
-            alert("حدث خطأ في معالجة خوارزمية التثليث الراديوي.");
         }
-    })
-    .catch(err => {
+    }).catch(err => {
         document.getElementById('loader').classList.remove('active');
-        console.error("Fetch Error:", err);
         alert("فشل الاتصال بالسيرفر الخلفي.");
     });
 }
 
 function renderInterfaceData(result) {
-    try {
-        document.getElementById('resultsBox').classList.add('active');
-        
-        let provider = result.cell_info?.provider || 'غير معروف';
-        let mcc = result.cell_info?.mcc || 0;
-        let mnc = result.cell_info?.mnc || 0;
-        let lac = result.cell_info?.lac || 0;
-        let cid = result.cell_info?.cid || 0;
-        let extAngle = result.towers?.main?.extracted_angle ?? 0;
-        let searchRadius = result.final_result?.search_radius ?? 50;
-        let confidence = result.confidence ?? 50;
+    document.getElementById('resultsBox').classList.add('active');
+    let provider = result.cell_info?.provider || 'غير معروف';
+    let mcc = result.cell_info?.mcc || 0, mnc = result.cell_info?.mnc || 0, lac = result.cell_info?.lac || 0, cid = result.cell_info?.cid || 0;
+    let extAngle = result.towers?.main?.extracted_angle ?? 0;
+    let searchRadius = result.final_result?.search_radius ?? 50;
+    let confidence = result.confidence ?? 50;
 
-        document.getElementById('cellDetails').innerHTML = `
-            <div class="mini-row"><span class="mini-label">المشغل المحلي</span><span class="mini-value" style="color:#60a5fa">${provider}</span></div>
-            <div class="mini-row"><span class="mini-label">الرمز الدولي</span><span class="mini-value">${mcc} - ${mnc}</span></div>
-            <div class="mini-row"><span class="mini-label">موقع الرمز</span><span class="mini-value">${lac} - ${cid}</span></div>
-            <div class="mini-row"><span class="mini-label">الزاوية المستخرجة</span><span class="mini-value">${extAngle}°</span></div>
-        `;
-
-        document.getElementById('distanceDetails').innerHTML = `
-            <div class="mini-row"><span class="mini-label">نطاق التفتيش الدقيق</span><span class="mini-value" style="color:#ec4899">${searchRadius} م</span></div>
-            <div class="mini-row"><span class="mini-label">الحدود الجغرافية</span><span class="mini-value" style="color:#10b981">مكبوحة بريّاً</span></div>
-            <div class="confidence-container">
-                <div class="mini-row"><span class="mini-label">درجة الدقة والموثوقية</span><span class="mini-value" style="color:#10b981">${confidence}%</span></div>
-                <div class="confidence-bar"><div class="confidence-fill" style="width:${confidence}%; background:#10b981"></div></div>
-            </div>
-        `;
-    } catch(e) { console.error("Error rendering details UI:", e); }
+    document.getElementById('cellDetails').innerHTML = `
+        <div class="mini-row"><span class="mini-label">المشغل المحلي</span><span class="mini-value" style="color:#60a5fa">${provider}</span></div>
+        <div class="mini-row"><span class="mini-label">الرمز الدولي</span><span class="mini-value">${mcc} - ${mnc}</span></div>
+        <div class="mini-row"><span class="mini-label">موقع الرمز</span><span class="mini-value">${lac} - ${cid}</span></div>
+        <div class="mini-row"><span class="mini-label">الزاوية</span><span class="mini-value">${extAngle}°</span></div>
+    `;
+    document.getElementById('distanceDetails').innerHTML = `
+        <div class="mini-row"><span class="mini-label">نطاق التفتيش</span><span class="mini-value" style="color:#ec4899">${searchRadius} م</span></div>
+        <div class="confidence-container">
+            <div class="mini-row"><span class="mini-label">درجة الموثوقية</span><span class="mini-value" style="color:#10b981">${confidence}%</span></div>
+            <div class="confidence-bar"><div class="confidence-fill" style="width:${confidence}%; background:#10b981"></div></div>
+        </div>
+    `;
 }
 
 function plotGeographicalData(res) {
-    try {
-        cleanCanvas();
-        let main = res.towers?.main;
-        if (!main || !map) return;
-        
-        drawVisualSector(main.lat, main.lon, main.final_angle, main.estimated_distance);
+    cleanCanvas();
+    let main = res.towers?.main;
+    if (!main || !map) return;
+    
+    drawVisualSector(main.lat, main.lon, main.final_angle, main.estimated_distance);
+    let mainMarker = L.marker([main.lat, main.lon], { icon: L.divIcon({ html: `<div style="background:#f97316; width:16px; height:16px; border-radius:50%; border:2px solid #fff;"></div>`, className: '' }) }).addTo(map);
+    markers.push(mainMarker);
 
-        let mainMarker = L.marker([main.lat, main.lon], {
-            icon: L.divIcon({ html: `<div style="background:#f97316; width:16px; height:16px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 10px #f97316;"></div>`, className: '' })
-        }).addTo(map);
-        markers.push(mainMarker);
+    if(res.towers?.virtual) {
+        res.towers.virtual.forEach(vt => {
+            let vtM = L.marker([vt.lat, vt.lon], { icon: L.divIcon({ html: `<div style="background:#8b5cf6; width:12px; height:12px; border-radius:50%; border:2px solid #fff;"></div>`, className: '' }) }).addTo(map);
+            markers.push(vtM);
+        });
+    }
 
-        if(res.towers?.virtual) {
-            res.towers.virtual.forEach(vt => {
-                let vtM = L.marker([vt.lat, vt.lon], {
-                    icon: L.divIcon({ html: `<div style="background:#8b5cf6; width:12px; height:12px; border-radius:50%; border:2px solid #fff;"></div>`, className: '' })
-                }).addTo(map);
-                markers.push(vtM);
-            });
-        }
-
-        let final = res.final_result;
-        if(final) {
-            let searchZone = L.circle([final.lat, final.lon], {
-                radius: final.search_radius,
-                color: '#ec4899',
-                fillColor: '#ec4899',
-                fillOpacity: 0.3,
-                weight: 2,
-                dashArray: '5,5'
-            }).addTo(map);
-            layers.push(searchZone);
-
-            let phoneMarker = L.marker([final.lat, final.lon], {
-                icon: L.divIcon({ html: `<div style="background:#ec4899; width:18px; height:18px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 12px #ec4899;"></div>`, className: '' })
-            }).addTo(map);
-            markers.push(phoneMarker);
-            
-            // عمل تقريب فوري ومباشر على نطاق التفتيش الفعلي
-            map.fitBounds(searchZone.getBounds().pad(0.5));
-        } else if(markers.length > 0) {
-            let group = new L.featureGroup(markers);
-            map.fitBounds(group.getBounds().pad(0.3));
-        }
-    } catch(e) { console.error("Error plotting map markers:", e); }
+    let final = res.final_result;
+    if(final) {
+        let searchZone = L.circle([final.lat, final.lon], { radius: final.search_radius, color: '#ec4899', fillColor: '#ec4899', fillOpacity: 0.3, weight: 2, dashArray: '5,5' }).addTo(map);
+        layers.push(searchZone);
+        let phoneMarker = L.marker([final.lat, final.lon], { icon: L.divIcon({ html: `<div style="background:#ec4899; width:18px; height:18px; border-radius:50%; border:3px solid #fff;"></div>`, className: '' }) }).addTo(map);
+        markers.push(phoneMarker);
+        map.fitBounds(searchZone.getBounds().pad(0.5));
+    }
 }
 
 window.onload = initMap;
-// تحديث التخطيط عند التمرير أو تدوير الهاتف لضمان بقاء الخريطة
 window.addEventListener('resize', () => { if(map) map.invalidateSize(); });
 </script>
 </body>
@@ -612,17 +490,13 @@ def api_analyze():
             final_angle, refinement_status = CellIDAnalyzer.refine_angle(user_direction, cell_analysis['angle_info'])
 
         est_distance = smart_distance_estimate(rssi, freq_mhz=freq, environment=env)
-        
-        # تحجيم المسافة لمنع تشتت النقاط الافتراضية وحصر النطاق بدقة
         compressed_distance = est_distance * 0.40 
         
         virtual_towers = TowerGenerator.generate_virtual_towers(main_lat, main_lon, compressed_distance, final_angle)
 
         towers_for_tri = [{'lat': main_lat, 'lon': main_lon, 'distance': compressed_distance, 'weight': 1.5}]
         for vt in virtual_towers:
-            towers_for_tri.append({
-                'lat': vt['lat'], 'lon': vt['lon'], 'distance': vt['distance_from_main'], 'weight': vt['weight']
-            })
+            towers_for_tri.append({'lat': vt['lat'], 'lon': vt['lon'], 'distance': vt['distance_from_main'], 'weight': vt['weight']})
         
         final_coords = weighted_centroid_trilateration(towers_for_tri)
         
@@ -632,8 +506,6 @@ def api_analyze():
         )
 
         confidence = calculate_confidence(len(virtual_towers), rssi, env, refinement_status)
-
-        # حساب نصف قطر البحث (مكبوح عند 50 متر كحد أدنى للنطاقات الحرجية)
         dynamic_search_radius = max(50, 150 - confidence)
 
         response_payload = {
