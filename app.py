@@ -392,11 +392,6 @@ HTML_TEMPLATE = '''
             </div>
 
             <div class="map-legend">
-                <div style="font-weight: bold; margin-bottom: 5px; color:#60a5fa;">الرموز الجغرافية</div>
-                <div class="legend-item"><div class="legend-icon" style="background:#f97316;"></div><span>البرج المستهدف الأساسي</span></div>
-                <div class="legend-item"><div class="legend-icon" style="background:#8b5cf6;"></div><span>نقاط التثليث الافتراضية</span></div>
-                <div class="legend-item"><div class="legend-icon" style="background:#ef4444;"></div><span>قطاع التغطية للإشارة</span></div>
-                <div class="legend-item"><div class="legend-icon" style="background:#ec4899;"></div><span>نطاق التفتيش الدقيق (50م)</span></div>
             </div>
         </div>
     </div>
