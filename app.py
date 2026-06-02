@@ -349,7 +349,6 @@ HTML_TEMPLATE = '''
                             <option value="-95">ضعيفة (-95 dBm)</option>
                             <option value="-110">ميتة (-110 dBm)</option>
                         </select>
-                    </div>
                     <div>
                         <label>التردد (Band)</label>
                         <select id="freq">
@@ -357,7 +356,6 @@ HTML_TEMPLATE = '''
                             <option value="1800">1800 MHz</option>
                             <option value="2100">2100 MHz</option>
                         </select>
-                    </div>
                 </div>
                 <div class="form-group">
                     <label>البيئة الطبوغرافية</label>
@@ -380,8 +378,6 @@ HTML_TEMPLATE = '''
                 <div class="card">
                     <div class="card-title">🎯 تقدير النطاق الجغرافي والموثوقية</div>
                     <div id="distanceDetails"></div>
-                </div>
-            </div>
         </div>
         
         <div class="map-container">
