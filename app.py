@@ -388,7 +388,7 @@ HTML_TEMPLATE = '''
             <div id="map"></div>
             
             <div class="map-watermark">
-                <span>غرفة العمليات الرقمية</span>
+                <span> </span>
             </div>
 
             <div class="map-legend">
